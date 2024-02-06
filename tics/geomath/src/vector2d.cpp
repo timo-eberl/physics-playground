@@ -6,7 +6,7 @@ Vector2D Vector2D::operator+(const Vector2D & rhs) const {
 	return { x + rhs.x, y + rhs.y };
 }
 
-Vector2D Vector2D::operator+(const float & rhs) const {
+Vector2D Vector2D::operator+(const double & rhs) const {
 	return { x + rhs, y + rhs };
 }
 
@@ -20,7 +20,7 @@ Vector2D Vector2D::operator-(const Vector2D & rhs) const {
 	return { x - rhs.x, y - rhs.y };
 }
 
-Vector2D Vector2D::operator-(const float & rhs) const {
+Vector2D Vector2D::operator-(const double & rhs) const {
 	return { x - rhs, y - rhs };
 }
 
@@ -34,7 +34,7 @@ Vector2D Vector2D::operator*(const Vector2D & rhs) const {
 	return { x * rhs.x, y * rhs.y };
 }
 
-Vector2D Vector2D::operator*(const float & rhs) const {
+Vector2D Vector2D::operator*(const double & rhs) const {
 	return { x * rhs, y * rhs };
 }
 
@@ -48,7 +48,7 @@ Vector2D Vector2D::operator/(const Vector2D & rhs) const {
 	return { x / rhs.x, y / rhs.y };
 }
 
-Vector2D Vector2D::operator/(const float & rhs) const {
+Vector2D Vector2D::operator/(const double & rhs) const {
 	return { x / rhs, y / rhs };
 }
 
@@ -58,6 +58,6 @@ Vector2D & Vector2D::operator/=(const Vector2D & rhs) {
 	return *this;
 }
 
-Vector2D geomath::operator*(const float & lhs, const Vector2D & rhs) {
+Vector2D geomath::operator*(const double & lhs, const Vector2D & rhs) {
 	return { lhs * rhs.x, lhs * rhs.y };
 }
