@@ -12,6 +12,8 @@ add_subdirectory (geomath)
 set(SOURCES
 	src/world.cpp
 	src/collision_test.cpp
+	src/impulse_solver.cpp
+	src/position_solver.cpp
 )
 add_library(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC include)

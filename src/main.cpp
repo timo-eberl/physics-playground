@@ -2,44 +2,69 @@
 
 #include "tics.h"
 
+#include <cmath>
+
+struct Sphere {
+	const std::shared_ptr<tics::Object> object;
+	const std::shared_ptr<tics::ObjectTransform> transform;
+	const std::shared_ptr<tics::SphereCollider> collider;
+	Color color;
+};
+
+void create_sphere(
+	Sphere &sphere,
+	float radius, geomath::Vector3D position, geomath::Vector3D velocity, Color color = BLUE,
+	float scale = 1.0f
+) {
+	sphere.color = color;
+	sphere.collider->radius = radius;
+	sphere.object->collider = sphere.collider;
+	sphere.object->transform = sphere.transform;
+	sphere.transform->position = position;
+	sphere.transform->scale = { scale, scale, scale };
+	sphere.object->velocity = velocity;
+}
+
 int main () {
 	int frame_rate = 60;
 	InitWindow(1280, 720, "Physics Playground");
 
 	// Define the camera to look into our 3d world
 	Camera3D camera = { 0 };
-	camera.position = { 7.0f, 4.0f, 7.0f };
+	camera.position = { 3.0f, 8.0f, 10.0f };
 	camera.target = { 0.0f, 0.0f, 0.0f };
 	camera.up = { 0.0f, 1.0f, 0.0f };
 	camera.fovy = 60.0f;
 	camera.projection = CAMERA_PERSPECTIVE;
 
-	float sphereRadius = 1.5f;
-
 	SetTargetFPS(frame_rate);
 
 	tics::World physics_world;
-	physics_world.set_gravity({ 0.0, -5.0, 0.0 });
+	physics_world.set_gravity({ 0.0, -15.0, 0.0 });
 
-	auto sphere1 = std::make_shared<tics::Object>();
-	auto sphere1_collider = std::make_shared<tics::SphereCollider>();
-	sphere1_collider->radius = sphereRadius;
-	sphere1->collider = sphere1_collider;
-	auto sphere1_transform = std::make_shared<tics::ObjectTransform>();
-	sphere1->transform = sphere1_transform;
-	sphere1_transform->position = { 0.0, -2.0, 0.0 };
-	sphere1->velocity = { 0.0, 8.0, 5.0 };
-	physics_world.add_object(sphere1);
+	std::vector<Sphere> spheres {};
 
-	auto sphere2 = std::make_shared<tics::Object>();
-	auto sphere2_collider = std::make_shared<tics::SphereCollider>();
-	sphere2_collider->radius = sphereRadius;
-	sphere2->collider = sphere2_collider;
-	auto sphere2_transform = std::make_shared<tics::ObjectTransform>();
-	sphere2->transform = sphere2_transform;
-	sphere2_transform->position = { 5.0, -3.0, 0.0 };
-	sphere2->velocity = { -5.0, 10.0, 5.0 };
-	physics_world.add_object(sphere2);
+	auto sphere_1 = Sphere({
+		std::make_shared<tics::Object>(),
+		std::make_shared<tics::ObjectTransform>(),
+		std::make_shared<tics::SphereCollider>()
+	});
+	create_sphere(
+		sphere_1, 0.75f, { 0.0, 1.5, 0.25 }, { 0.0, 8.0, 0.0 }, BLUE
+	);
+	spheres.emplace_back(sphere_1);
+	physics_world.add_object(sphere_1.object);
+
+	auto sphere_2 = Sphere({
+		std::make_shared<tics::Object>(),
+		std::make_shared<tics::ObjectTransform>(),
+		std::make_shared<tics::SphereCollider>()
+	});
+	create_sphere(
+		sphere_2, 0.75f, { -3.0, 1.0, 0.0 }, { 2.0, 12.0, 0.0 }, BEIGE
+	);
+	spheres.emplace_back(sphere_2);
+	physics_world.add_object(sphere_2.object);
 
 	auto plane = std::make_shared<tics::Object>();
 	auto plane_collider = std::make_shared<tics::PlaneCollider>();
@@ -47,15 +72,49 @@ int main () {
 	plane_collider->normal = { 0.0, 1.0, 0.0 };
 	auto plane_transform = std::make_shared<tics::ObjectTransform>();
 	plane->transform = plane_transform;
-	plane_transform->position = { 0.0, -0.05, 0.0 };
-	plane->velocity = { 0.0, 0.0, 0.0 };
-	plane->gravity_scale = 0.0f;
+	plane_transform->position = { -0.0, -0.05, 0.0 };
+	plane->is_dynamic = false;
 	physics_world.add_object(plane);
 
-	while (!WindowShouldClose()) {
-		physics_world.update(1.0f/frame_rate);
+	auto impulse_solver = std::make_shared<tics::ImpulseSolver>();
+	auto position_solver = std::make_shared<tics::PositionSolver>();
+	physics_world.add_solver(impulse_solver);
+	physics_world.add_solver(position_solver);
 
-		UpdateCamera(&camera, CAMERA_ORBITAL);
+	while (!WindowShouldClose()) {
+		if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+			auto sphere = Sphere({
+				std::make_shared<tics::Object>(),
+				std::make_shared<tics::ObjectTransform>(),
+				std::make_shared<tics::SphereCollider>()
+			});
+			create_sphere(
+				sphere, 0.75f,
+				{ // position
+					(0.5-static_cast<double>(std::rand()) / RAND_MAX)*1.0,
+					(0.5-static_cast<double>(std::rand()) / RAND_MAX) + 3.0,
+					(0.5-static_cast<double>(std::rand())/ RAND_MAX)*1.0
+				},
+				{ // velocity
+					(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5,
+					(static_cast<double>(std::rand()) / RAND_MAX)*5,
+					(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5
+				},
+				Color {
+					static_cast<unsigned char>(std::rand() % 256),
+					static_cast<unsigned char>(std::rand() % 256),
+					static_cast<unsigned char>(std::rand() % 256),
+					255
+				}
+			);
+			spheres.emplace_back(sphere);
+			physics_world.add_object(sphere.object);
+		}
+
+		float time_scale = 1.0f;
+		physics_world.update(time_scale/frame_rate);
+
+		// UpdateCamera(&camera, CAMERA_ORBITAL);
 
 		// "zoom" with mouse wheel
 		float mouse_wheel = GetMouseWheelMove();
@@ -69,25 +128,17 @@ int main () {
 
 			BeginMode3D(camera);
 
-				Vector3 sphere1_pos = {
-					static_cast<float>(sphere1_transform->position.x),
-					static_cast<float>(sphere1_transform->position.y),
-					static_cast<float>(sphere1_transform->position.z),
-				};
-				DrawSphereEx(
-					sphere1_pos, sphereRadius, 50, 50, sphere1->is_colliding ? RED : BLUE
-				);
-				DrawSphereWires(sphere1_pos, sphereRadius, 50, 4, WHITE);
-
-				Vector3 sphere2_pos = {
-					static_cast<float>(sphere2_transform->position.x),
-					static_cast<float>(sphere2_transform->position.y),
-					static_cast<float>(sphere2_transform->position.z),
-				};
-				DrawSphereEx(
-					sphere2_pos, sphereRadius, 50, 50, sphere2->is_colliding ? RED : BEIGE
-				);
-				DrawSphereWires(sphere2_pos, sphereRadius, 50, 4, WHITE);
+				for (auto sphere : spheres) {
+					Vector3 sphere_pos = {
+						static_cast<float>(sphere.transform->position.x),
+						static_cast<float>(sphere.transform->position.y),
+						static_cast<float>(sphere.transform->position.z),
+					};
+					const auto radius = sphere.collider->radius;
+					DrawSphereEx(
+						sphere_pos, radius, 50, 50, sphere.color
+					);
+				}
 
 				Vector3 plane_pos = {
 					static_cast<float>(plane_transform->position.x),
@@ -97,6 +148,10 @@ int main () {
 				DrawPlane(plane_pos, { 1000.0f, 1000.0f }, Color { 30, 30, 30, 255 });
 
 				DrawGrid(1000, 1.0f);
+
+				DrawLine3D({0.0f, 0.01f, 0.0f}, {1000.0f,   0.01f,    0.0f}, RED);
+				DrawLine3D({0.0f,  0.0f, 0.0f}, {   0.0f, 1000.0f,    0.0f}, GREEN);
+				DrawLine3D({0.0f, 0.01f, 0.0f}, {   0.0f,   0.01f, 1000.0f}, BLUE);
 
 			EndMode3D();
 

@@ -81,8 +81,10 @@ CollisionPoints collision_test_sphere_plane(
 
 	collision_points.has_collision = true;
 
+	// furthest point of sphere a into plane b
 	collision_points.a = sphere_center - plane_normal * sphere_radius;
-	collision_points.b = sphere_center + plane_normal * distance;
+	// furthest point of plane b into sphere a
+	collision_points.b = sphere_center - plane_normal * distance;
 
 	collision_points.normal = plane_normal;
 	collision_points.depth = (collision_points.b - collision_points.a).length();
@@ -90,8 +92,8 @@ CollisionPoints collision_test_sphere_plane(
 	return collision_points;
 }
 
-// define a function type
-using FindCollisionTestFunc = CollisionPoints(*)(
+// define the function type for a collision test function
+using CollisionTestFunc = CollisionPoints(*)(
 	const Collider&, const ObjectTransform&,
 	const Collider&, const ObjectTransform&
 );
@@ -100,7 +102,7 @@ CollisionPoints tics::collision_test(
 	const Collider& a, const ObjectTransform& at,
 	const Collider& b, const ObjectTransform& bt
 ) {
-	static const FindCollisionTestFunc function_table[2][2] = {
+	static const CollisionTestFunc function_table[2][2] = {
 		  // Sphere                     Plane
 		{ collision_test_sphere_sphere, collision_test_sphere_plane }, // Sphere
 		{ nullptr,                      nullptr                     }  // Plane
