@@ -14,12 +14,13 @@ struct Sphere {
 void create_sphere(
 	Sphere &sphere,
 	float radius, geomath::Vector3D position, geomath::Vector3D velocity, Color color = BLUE,
-	float scale = 1.0f
+	float scale = 1.0f, float mass = 1.0f
 ) {
 	sphere.color = color;
 	sphere.collider->radius = radius;
 	sphere.object->collider = sphere.collider;
 	sphere.object->transform = sphere.transform;
+	sphere.object->mass = mass;
 	sphere.transform->position = position;
 	sphere.transform->scale = { scale, scale, scale };
 	sphere.object->velocity = velocity;
@@ -40,7 +41,7 @@ int main () {
 	SetTargetFPS(frame_rate);
 
 	tics::World physics_world;
-	physics_world.set_gravity({ 0.0, -15.0, 0.0 });
+	physics_world.set_gravity({ 0.0, -20.0, 0.0 });
 
 	std::vector<Sphere> spheres {};
 
@@ -50,7 +51,7 @@ int main () {
 		std::make_shared<tics::SphereCollider>()
 	});
 	create_sphere(
-		sphere_1, 0.75f, { 0.0, 1.5, 0.25 }, { 0.0, 8.0, 0.0 }, BLUE
+		sphere_1, 0.75f, { 0.0, 1.5, 0.25 }, { 0.0, 8.0, 0.0 }, BLUE, 1.0f, 0.5f
 	);
 	spheres.emplace_back(sphere_1);
 	physics_world.add_object(sphere_1.object);
@@ -61,7 +62,7 @@ int main () {
 		std::make_shared<tics::SphereCollider>()
 	});
 	create_sphere(
-		sphere_2, 0.75f, { -3.0, 1.0, 0.0 }, { 2.0, 12.0, 0.0 }, BEIGE
+		sphere_2, 0.75f, { -3.0, 1.0, 0.0 }, { 2.0, 12.0, 0.0 }, BEIGE, 1.0f, 1.5f
 	);
 	spheres.emplace_back(sphere_2);
 	physics_world.add_object(sphere_2.object);
