@@ -1,6 +1,6 @@
 #include "tics.h"
 
-#include <iostream>
+#include <cassert>
 
 using tics::ImpulseSolver;
 
@@ -10,11 +10,12 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 		auto sp_b = collision.b.lock();
 		if (!sp_a || !sp_b) { continue; }
 		if (!sp_a->is_dynamic && !sp_b->is_dynamic) { continue; }
-		
-		const auto a_velocity = sp_a->is_dynamic ? sp_a->velocity : geomath::Vector3D { 0.0, 0.0, 0.0 };
-		const auto b_velocity = sp_b->is_dynamic ? sp_b->velocity : geomath::Vector3D { 0.0, 0.0, 0.0 };
 
-		const auto relative_velocity = a_velocity - b_velocity;
+		// if the object is static, its velocity must be zero
+		assert(sp_a->is_dynamic || sp_a->velocity.is_zero());
+		assert(sp_b->is_dynamic || sp_b->velocity.is_zero());
+
+		const auto relative_velocity = sp_a->velocity - sp_b->velocity;
 		// relative velocity in the collision normal direction
 		const auto n_dot_v = relative_velocity.dot(collision.points.normal);
 

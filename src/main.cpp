@@ -51,7 +51,7 @@ int main () {
 		std::make_shared<tics::SphereCollider>()
 	});
 	create_sphere(
-		sphere_1, 0.75f, { 0.0, 1.5, 0.25 }, { 0.0, 8.0, 0.0 }, BLUE, 1.0f, 0.5f
+		sphere_1, 0.75f, { 0.0, 1.5, 0.25 }, { 0.0, 8.0, 0.0 }, BLUE
 	);
 	spheres.emplace_back(sphere_1);
 	physics_world.add_object(sphere_1.object);
@@ -62,7 +62,7 @@ int main () {
 		std::make_shared<tics::SphereCollider>()
 	});
 	create_sphere(
-		sphere_2, 0.75f, { -3.0, 1.0, 0.0 }, { 2.0, 12.0, 0.0 }, BEIGE, 1.0f, 1.5f
+		sphere_2, 1.25f, { -3.0, 1.0, 0.0 }, { 2.0, 12.0, 0.0 }, BEIGE, 1.0f, 2.0f
 	);
 	spheres.emplace_back(sphere_2);
 	physics_world.add_object(sphere_2.object);

@@ -20,6 +20,14 @@ double Vector3D::dot(const Vector3D & rhs) const {
 	return (x*rhs.x) + (y*rhs.y) + (z*rhs.z);
 }
 
+bool Vector3D::is_zero() const {
+	return x == 0.0 && y == 0.0 && z == 0.0;
+}
+
+bool Vector3D::is_zero_approx(const double epsilon) const {
+	return abs(x) < epsilon && abs(y) < epsilon && abs(z) < epsilon;
+}
+
 Vector3D Vector3D::operator+(const Vector3D & rhs) const {
 	return { x + rhs.x, y + rhs.y, z + rhs.z };
 }

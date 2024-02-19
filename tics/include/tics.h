@@ -47,8 +47,8 @@ CollisionPoints collision_test(
 );
 
 struct Object {
-	geomath::Vector3D velocity = { 0.0, 1.0, 0.0 };
-	geomath::Vector3D force = { 0.0, 1.0, 0.0 };
+	geomath::Vector3D velocity = { 0.0, 0.0, 0.0 };
+	geomath::Vector3D force = { 0.0, 0.0, 0.0 };
 	float mass = 1.0f;
 	float gravity_scale = 1.0f;
 	bool is_dynamic = true;

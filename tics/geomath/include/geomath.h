@@ -40,6 +40,8 @@ public:
 	double length_squared() const;
 	Vector3D normalized() const;
 	double dot(const Vector3D & rhs) const;
+	bool is_zero() const;
+	bool is_zero_approx(const double epsilon) const;
 
 	Vector3D operator+(const Vector3D & rhs) const;
 	Vector3D operator+(const double & rhs) const;
