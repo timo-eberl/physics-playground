@@ -137,7 +137,7 @@ int main () {
 					};
 					const auto radius = sphere.collider->radius;
 					DrawSphereEx(
-						sphere_pos, radius, 50, 50, sphere.color
+						sphere_pos, radius, 10, 10, sphere.color
 					);
 				}
 
