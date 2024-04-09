@@ -155,6 +155,17 @@ int main() {
 ProgramState initialize(GLFWwindow* window) {
 	auto scene = ron::Scene();
 
+	ron::DirectionalLight light = {};
+	light.world_position = glm::vec3(0.2f, 1.0f, 0.0f) * 20.0f;
+	light.world_direction = glm::normalize(light.world_position);
+	light.shadow.enabled = true;
+	light.shadow.map_size = glm::uvec2(2048);
+	light.shadow.bias = 0.05f;
+	light.shadow.far = 30.0f;
+	light.shadow.frustum_size = 50.0f;
+
+	scene.set_directional_light(light);
+
 	auto renderer = std::make_unique<ron::OpenGLRenderer>(1280, 720);
 	renderer->set_clear_color(glm::vec4(0.1, 0.1, 0.1, 1.0));
 
