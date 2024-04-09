@@ -155,7 +155,7 @@ int main() {
 ProgramState initialize(GLFWwindow* window) {
 	auto scene = ron::Scene();
 
-	auto renderer = std::make_unique<ron::OpenGLRenderer>();
+	auto renderer = std::make_unique<ron::OpenGLRenderer>(1280, 720);
 	renderer->set_clear_color(glm::vec4(0.1, 0.1, 0.1, 1.0));
 
 	const auto initial_camera_rotation = glm::vec2(glm::radians(-24.2f), glm::radians(63.6f));
@@ -267,7 +267,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	auto state = static_cast<ProgramState *>(glfwGetWindowUserPointer(window));
 	assert(state);
 
-	glViewport(0, 0, width, height);
+	state->renderer->resolution = glm::uvec2(width, height);
 
 	state->camera.set_aspect_ratio(static_cast<float>(width) / static_cast<float>(height));
 }
