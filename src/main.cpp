@@ -156,8 +156,9 @@ ProgramState initialize(GLFWwindow* window) {
 	auto scene = ron::Scene();
 
 	ron::DirectionalLight light = {};
-	light.world_position = glm::vec3(0.2f, 1.0f, 0.0f) * 20.0f;
-	light.world_direction = glm::normalize(light.world_position);
+	light.use_custom_shadow_target_world_position = true;
+	light.custom_shadow_target_world_position = glm::vec3(0.0f, 0.0f, 0.0f);
+	light.world_direction = glm::normalize(glm::vec3(0.1f, 1.0f, 0.0f));
 	light.shadow.enabled = true;
 	light.shadow.map_size = glm::uvec2(2048);
 	light.shadow.bias = 0.05f;
