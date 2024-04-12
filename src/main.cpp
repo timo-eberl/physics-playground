@@ -1,9 +1,19 @@
 #include <cmath>
 #include <iostream>
 #include <chrono>
+#include <sstream>
 
 #include <tics.h>
 #include <ron.h>
+
+#include "game_loop.h"
+
+using namespace std::chrono_literals;
+
+auto accumulated_render_time = 0ns;
+unsigned int accumulated_render_time_count = 0;
+auto accumulated_physics_time = 0ns;
+unsigned int accumulated_physics_time_count = 0;
 
 struct Sphere {
 	const std::shared_ptr<tics::RigidBody> rigid_body;
@@ -127,33 +137,53 @@ int main() {
 		ProgramState state = initialize(window);
 		glfwSetWindowUserPointer(window, static_cast<void *>(&state));
 
+		GameLoop game_loop(
+			[window, &state](const float delta, const float fixed_delay) { render(window, state); },
+			[window, &state](const float delta) { process(window, state); },
+			1.0f/60.0f, 0.0f, 1.0f/60.0f
+		);
+
+		auto last_title_update_time_point = std::chrono::high_resolution_clock::now();
+
 		while (!glfwWindowShouldClose(window)) {
-			auto start_time_point = std::chrono::high_resolution_clock::now();
+			game_loop.update();
 
-			process(window, state);
+			static const auto update_interval = 250ms;
+			const auto now = std::chrono::high_resolution_clock::now();
+			if (now - last_title_update_time_point >= update_interval) {
+				last_title_update_time_point = now;
 
-			auto after_process_time_point = std::chrono::high_resolution_clock::now();
+				const auto avg_render_time = std::chrono::duration<double>(
+					accumulated_render_time / accumulated_render_time_count
+				);
+				const double avg_render_time_ms = avg_render_time.count() * 1000.0;
 
-			render(window, state);
+				accumulated_render_time = 0ns;
+				accumulated_render_time_count = 0;
 
-			auto after_render_time_point = std::chrono::high_resolution_clock::now();
+				const auto avg_physics_time = std::chrono::duration<double>(
+					accumulated_physics_time / accumulated_physics_time_count
+				);
+				const double avg_physics_time_ms = avg_physics_time.count() * 1000.0;
 
-			const auto physics_time = after_process_time_point - start_time_point;
-			const auto render_time = after_render_time_point - after_process_time_point;
+				accumulated_physics_time = 0ns;
+				accumulated_physics_time_count = 0;
 
-			std::cout
-					<< std::endl
-				<< "number of balls: " << state.spheres.size()
-					<< std::endl
-				<< "physics_time: "
-				<< std::chrono::duration_cast<std::chrono::milliseconds>(physics_time)
-					<< std::endl
-				<< "render_time: "
-				<< std::chrono::duration_cast<std::chrono::milliseconds>(render_time)
-					<< std::endl;
-
-			glfwSwapBuffers(window);
-			glfwPollEvents();
+				std::stringstream title_stream;
+				title_stream
+					<< "Physics Playground"
+					<< " - Render Time: "
+					<< std::fixed << std::setprecision(2) // specify decimal places
+					<< avg_render_time_ms << "ms"
+					<< " - Render FPS: "
+					<< static_cast<int>(1000.0 / avg_render_time_ms)
+					<< " - Phyiscs Time: "
+					<< std::fixed << std::setprecision(2) // specify decimal places
+					<< avg_physics_time_ms << "ms"
+					<< " - Physics FPS: "
+					<< static_cast<int>(1000.0 / avg_physics_time_ms);
+				glfwSetWindowTitle(window,  + title_stream.str().c_str());
+			}
 		}
 	}
 
@@ -257,10 +287,14 @@ ProgramState initialize(GLFWwindow* window) {
 }
 
 void process(GLFWwindow* window, ProgramState& state) {
+	glfwPollEvents();
+
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 		return;
 	}
+
+	auto start_time_point = std::chrono::high_resolution_clock::now();
 
 	// create spheres with random size and color
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT == GLFW_PRESS)) {
@@ -293,6 +327,10 @@ void process(GLFWwindow* window, ProgramState& state) {
 	float time_scale = 1.0f;
 	state.physics_world.update(time_scale/60.0f);
 
+	const auto physics_time = std::chrono::high_resolution_clock::now() - start_time_point;
+	++accumulated_physics_time_count;
+	accumulated_physics_time += physics_time;
+
 	for (const auto &sphere : state.spheres) {
 		sphere.mesh_node->set_model_matrix(transform_to_model_matrix(*sphere.transform));
 	}
@@ -301,7 +339,15 @@ void process(GLFWwindow* window, ProgramState& state) {
 }
 
 void render(GLFWwindow* window, ProgramState& state) {
+	auto start_time_point = std::chrono::high_resolution_clock::now();
+
 	state.renderer->render(state.render_scene, state.camera);
+
+	const auto render_time = std::chrono::high_resolution_clock::now() - start_time_point;
+	++accumulated_render_time_count;
+	accumulated_render_time += render_time;
+
+	glfwSwapBuffers(window);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {

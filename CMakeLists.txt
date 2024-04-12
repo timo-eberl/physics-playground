@@ -13,7 +13,7 @@ set (CMAKE_CXX_STANDARD 20) # Require C++20
 
 # this Project
 	set(SOURCES
-
+		src/game_loop.cpp
 	)
 	add_executable(${PROJECT_NAME}
 		src/main.cpp
