@@ -3,7 +3,7 @@
 #include <cassert>
 #include <iostream>
 
-using tics::ObjectTransform;
+using tics::Transform;
 using tics::CollisionPoints;
 using tics::ColliderType;
 using tics::Collider;
@@ -11,8 +11,8 @@ using tics::SphereCollider;
 using tics::PlaneCollider;
 
 CollisionPoints collision_test_sphere_sphere(
-	const Collider& a, const ObjectTransform& ta,
-	const Collider& b, const ObjectTransform& tb
+	const Collider& a, const Transform& ta,
+	const Collider& b, const Transform& tb
 ) {
 	assert(a.type == ColliderType::SPHERE);
 	assert(b.type == ColliderType::SPHERE);
@@ -53,8 +53,8 @@ CollisionPoints collision_test_sphere_sphere(
 }
 
 CollisionPoints collision_test_sphere_plane(
-	const Collider& a, const ObjectTransform& ta,
-	const Collider& b, const ObjectTransform& tb
+	const Collider& a, const Transform& ta,
+	const Collider& b, const Transform& tb
 ) {
 	assert(a.type == ColliderType::SPHERE);
 	assert(b.type == ColliderType::PLANE);
@@ -94,13 +94,13 @@ CollisionPoints collision_test_sphere_plane(
 
 // define the function type for a collision test function
 using CollisionTestFunc = CollisionPoints(*)(
-	const Collider&, const ObjectTransform&,
-	const Collider&, const ObjectTransform&
+	const Collider&, const Transform&,
+	const Collider&, const Transform&
 );
 
 CollisionPoints tics::collision_test(
-	const Collider& a, const ObjectTransform& at,
-	const Collider& b, const ObjectTransform& bt
+	const Collider& a, const Transform& at,
+	const Collider& b, const Transform& bt
 ) {
 	static const CollisionTestFunc function_table[2][2] = {
 		  // Sphere                     Plane

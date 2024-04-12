@@ -14,6 +14,9 @@ set(SOURCES
 	src/collision_test.cpp
 	src/impulse_solver.cpp
 	src/position_solver.cpp
+	src/static_body.cpp
+	src/rigid_body.cpp
+	src/collision_area.cpp
 )
 add_library(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC include)

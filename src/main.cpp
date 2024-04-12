@@ -6,15 +6,15 @@
 #include <ron.h>
 
 struct Sphere {
-	const std::shared_ptr<tics::Object> object;
-	const std::shared_ptr<tics::ObjectTransform> transform;
+	const std::shared_ptr<tics::RigidBody> rigid_body;
+	const std::shared_ptr<tics::Transform> transform;
 	const std::shared_ptr<tics::SphereCollider> collider;
 	std::shared_ptr<ron::MeshNode> mesh_node;
 };
 
 struct GroundPlane {
-	const std::shared_ptr<tics::Object> object;
-	const std::shared_ptr<tics::ObjectTransform> transform;
+	const std::shared_ptr<tics::StaticBody> static_body;
+	const std::shared_ptr<tics::Transform> transform;
 	const std::shared_ptr<tics::PlaneCollider> collider;
 };
 
@@ -38,7 +38,7 @@ static ProgramState initialize(GLFWwindow* window);
 static void process(GLFWwindow* window, ProgramState& state);
 static void render(GLFWwindow* window, ProgramState& state);
 
-static glm::mat4 transform_to_model_matrix(const tics::ObjectTransform &transform) {
+static glm::mat4 transform_to_model_matrix(const tics::Transform &transform) {
 	auto model_matrix = glm::identity<glm::mat4>();
 
 	model_matrix = glm::translate(model_matrix, glm::vec3(
@@ -60,18 +60,18 @@ static Sphere create_sphere(
 		.get_mesh_nodes()
 		.front();
 	Sphere sphere = Sphere({
-		std::make_shared<tics::Object>(),
-		std::make_shared<tics::ObjectTransform>(),
+		std::make_shared<tics::RigidBody>(),
+		std::make_shared<tics::Transform>(),
 		std::make_shared<tics::SphereCollider>(),
 		std::make_shared<ron::MeshNode>(*sphere_mesh) // copy
 	});
 	sphere.collider->radius = 1.0;
-	sphere.object->collider = sphere.collider;
-	sphere.object->transform = sphere.transform;
-	sphere.object->mass = mass;
+	sphere.rigid_body->set_collider(sphere.collider);
+	sphere.rigid_body->set_transform(sphere.transform);
+	sphere.rigid_body->mass = mass;
 	sphere.transform->position = position;
 	sphere.transform->scale = { scale, scale, scale };
-	sphere.object->velocity = velocity;
+	sphere.rigid_body->velocity = velocity;
 
 	// copy the default material and modify it
 	const auto material = std::make_shared<ron::Material>(*scene.default_material);
@@ -183,26 +183,25 @@ ProgramState initialize(GLFWwindow* window) {
 		{ 0.0, 1.5, 0.25 }, { 0.0, 8.0, 0.0 }, scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
 	);
 	spheres.emplace_back(sphere_1);
-	physics_world.add_object(sphere_1.object);
+	physics_world.add_object(sphere_1.rigid_body);
 	scene.add(sphere_1.mesh_node);
 
 	auto sphere_2 = create_sphere(
 		{ -3.0, 1.0, 0.0 }, { 2.0, 12.0, 0.0 }, scene, glm::vec3(0.4, 0.3, 0.1), 1.25f, 1.25f
 	);
 	spheres.emplace_back(sphere_2);
-	physics_world.add_object(sphere_2.object);
+	physics_world.add_object(sphere_2.rigid_body);
 	scene.add(sphere_2.mesh_node);
 
 	GroundPlane ground_plane {
-		std::make_shared<tics::Object>(),
-		std::make_shared<tics::ObjectTransform>(),
+		std::make_shared<tics::StaticBody>(),
+		std::make_shared<tics::Transform>(),
 		std::make_shared<tics::PlaneCollider>(),
 	};
 	ground_plane.collider->normal = { 0.0, 1.0, 0.0 };
-	ground_plane.object->collider = ground_plane.collider;
-	ground_plane.object->transform = ground_plane.transform;
-	ground_plane.object->is_dynamic = false;
-	physics_world.add_object(ground_plane.object);
+	ground_plane.static_body->set_collider(ground_plane.collider);
+	ground_plane.static_body->set_transform(ground_plane.transform);
+	physics_world.add_object(ground_plane.static_body);
 	scene.add(ron::gltf::import("models/ground.glb"));
 
 	auto impulse_solver = std::make_shared<tics::ImpulseSolver>();
@@ -257,7 +256,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 			size * size // weight
 		);
 		state.spheres.emplace_back(sphere);
-		state.physics_world.add_object(sphere.object);
+		state.physics_world.add_object(sphere.rigid_body);
 		state.render_scene.add(sphere.mesh_node);
 	}
 

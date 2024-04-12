@@ -5,12 +5,12 @@
 
 using tics::World;
 
-void World::add_object(const std::weak_ptr<tics::Object> object) {
+void World::add_object(const std::weak_ptr<tics::ICollisionObject> object) {
 	m_objects.emplace_back(object);
 }
 
-void World::remove_object(const std::weak_ptr<tics::Object> object) {
-	auto is_equals = [object](std::weak_ptr<tics::Object> obj) {
+void World::remove_object(const std::weak_ptr<tics::ICollisionObject> object) {
+	auto is_equals = [object](std::weak_ptr<tics::ICollisionObject> obj) {
 		return !obj.expired() && !object.expired() && object.lock() == obj.lock();
 	};
 	// find the object, move it to the end of the list and erase it
@@ -35,17 +35,17 @@ void World::update(const float delta) {
 	// dynamics
 	for (auto wp_object : m_objects) {
 		if (auto sp_object = wp_object.lock()) {
-			if (!sp_object->is_dynamic) { continue; }
+			const auto rigid_body = dynamic_cast<RigidBody *>(sp_object.get());
+			if (!rigid_body) { continue; }
 
-			sp_object->force += sp_object->mass * sp_object->gravity_scale * m_gravity;
+			rigid_body->force += rigid_body->mass * rigid_body->gravity_scale * m_gravity;
 
-			assert(sp_object->mass != 0.0f);
-			auto acceleration = sp_object->force / sp_object->mass;
-			sp_object->velocity += acceleration * delta;
-			auto fjasdlkj = sp_object->transform.lock()->position;
-			sp_object->transform.lock()->position += sp_object->velocity * delta;
+			assert(rigid_body->mass != 0.0f);
+			auto acceleration = rigid_body->force / rigid_body->mass;
+			rigid_body->velocity += acceleration * delta;
+			rigid_body->get_transform().lock()->position += rigid_body->velocity * delta;
 
-			sp_object->force = { 0.0f, 0.0f, 0.0f };
+			rigid_body->force = { 0.0f, 0.0f, 0.0f };
 		}
 	}
 }
@@ -62,15 +62,15 @@ void World::resolve_collisions(const float delta) {
 			// break if both pointers point to the same object -> we will only check unique pairs
 			if (sp_a == sp_b) { break; }
 
-			if (sp_a->collider.expired() || sp_b->collider.expired() ||
-				sp_a->transform.expired() || sp_b->transform.expired()
+			if (sp_a->get_collider().expired() || sp_b->get_collider().expired() ||
+				sp_a->get_transform().expired() || sp_b->get_transform().expired()
 			) {
 				continue;
 			}
 
 			auto collision_points = collision_test(
-				*(sp_a->collider.lock()), *(sp_a->transform.lock()),
-				*(sp_b->collider.lock()), *(sp_b->transform.lock())
+				*(sp_a->get_collider().lock()), *(sp_a->get_transform().lock()),
+				*(sp_b->get_collider().lock()), *(sp_b->get_transform().lock())
 			);
 
 			if (collision_points.has_collision) {
@@ -82,11 +82,13 @@ void World::resolve_collisions(const float delta) {
 	for (const auto& collision : collisions) {
 		if (m_collision_event) { m_collision_event(collision); }
 
-		if (const auto sp_object = collision.a.lock()) {
-			if (sp_object->collision_event) { sp_object->collision_event(collision); }
-		}
-		if (const auto sp_object = collision.b.lock()) {
-			if (sp_object->collision_event) { sp_object->collision_event(collision); }
+		for (const auto wp_object : { collision.a, collision.b }) {
+			if (const auto sp_object = wp_object.lock()) {
+				// check if the object is a CollisionArea
+				if (const auto collision_area = dynamic_cast<CollisionArea *>(sp_object.get())) {
+					collision_area->on_collision_enter(collision);
+				}
+			}
 		}
 	}
 
