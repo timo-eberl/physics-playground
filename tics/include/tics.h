@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <functional>
 
 #include "geomath.h"
 
@@ -38,7 +39,7 @@ struct CollisionPoints {
 	geomath::Vector3D b; // furthest point of b into a
 	geomath::Vector3D normal; // b - a normalized
 	float depth; // length of b - a
-	bool has_collision;
+	bool has_collision = false;
 };
 
 CollisionPoints collision_test(
@@ -46,13 +47,17 @@ CollisionPoints collision_test(
 	const Collider& b, const ObjectTransform& bt
 );
 
+struct Collision;
+
 struct Object {
 	geomath::Vector3D velocity = { 0.0, 0.0, 0.0 };
 	geomath::Vector3D force = { 0.0, 0.0, 0.0 };
 	float mass = 1.0f;
 	float gravity_scale = 1.0f;
+
+	std::function<void(const Collision&)> collision_event;
+
 	bool is_dynamic = true;
-	bool is_colliding; // for debugging
 
 	std::weak_ptr<Collider> collider;
 	std::weak_ptr<ObjectTransform> transform;
@@ -84,10 +89,12 @@ public:
 	void resolve_collisions(const float delta);
 
 	void set_gravity(const geomath::Vector3D gravity);
+	void set_collision_event(const std::function<void(const Collision&)> collision_event);
 private:
 	std::vector<std::weak_ptr<Object>> m_objects;
 	std::vector<std::weak_ptr<ISolver>> m_solvers;
 	geomath::Vector3D m_gravity = { 0.0f, -9.81f, 0.0f };
+	std::function<void(const Collision&)> m_collision_event;
 };
 
 class ImpulseSolver : public ISolver {

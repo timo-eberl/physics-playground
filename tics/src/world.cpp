@@ -53,12 +53,6 @@ void World::update(const float delta) {
 void World::resolve_collisions(const float delta) {
 	std::vector<Collision> collisions;
 
-	for (auto wp_object : m_objects) {
-		if (auto sp_object = wp_object.lock()) {
-			sp_object->is_colliding = false;
-		}
-	}
-
 	for (auto wp_a : m_objects) {
 		for (auto wp_b : m_objects) {
 			auto sp_a = wp_a.lock();
@@ -82,11 +76,17 @@ void World::resolve_collisions(const float delta) {
 			if (collision_points.has_collision) {
 				collisions.emplace_back(sp_a, sp_b, collision_points);
 			}
+		}
+	}
 
-			if (collision_points.has_collision) {
-				sp_a->is_colliding = true;
-				sp_b->is_colliding = true;
-			}
+	for (const auto& collision : collisions) {
+		if (m_collision_event) { m_collision_event(collision); }
+
+		if (const auto sp_object = collision.a.lock()) {
+			if (sp_object->collision_event) { sp_object->collision_event(collision); }
+		}
+		if (const auto sp_object = collision.b.lock()) {
+			if (sp_object->collision_event) { sp_object->collision_event(collision); }
 		}
 	}
 
@@ -99,4 +99,8 @@ void World::resolve_collisions(const float delta) {
 
 void World::set_gravity(const geomath::Vector3D gravity) {
 	m_gravity = gravity;
+}
+
+void World::set_collision_event(const std::function<void(const Collision&)> collision_event) {
+	m_collision_event = collision_event;
 }
