@@ -18,9 +18,17 @@ struct GroundPlane {
 	const std::shared_ptr<tics::PlaneCollider> collider;
 };
 
+struct AreaTrigger {
+	const std::shared_ptr<tics::CollisionArea> area;
+	const std::shared_ptr<tics::Transform> transform;
+	const std::shared_ptr<tics::SphereCollider> collider;
+	std::shared_ptr<ron::MeshNode> mesh_node;
+};
+
 struct ProgramState {
 	std::vector<Sphere> spheres;
 	GroundPlane ground_plane;
+	AreaTrigger area_trigger;
 
 	ron::PerspectiveCamera camera;
 	ron::CameraViewportControls camera_controls;
@@ -30,6 +38,7 @@ struct ProgramState {
 	tics::World physics_world;
 	std::shared_ptr<tics::ImpulseSolver> impulse_solver;
 	std::shared_ptr<tics::PositionSolver> position_solver;
+	std::shared_ptr<tics::CollisionAreaSolver> collision_area_solver;
 };
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -193,6 +202,23 @@ ProgramState initialize(GLFWwindow* window) {
 	physics_world.add_object(sphere_2.rigid_body);
 	scene.add(sphere_2.mesh_node);
 
+	AreaTrigger area_trigger = {
+		std::make_shared<tics::CollisionArea>(),
+		std::make_shared<tics::Transform>(),
+		std::make_shared<tics::SphereCollider>(),
+		ron::gltf::import("default/models/icosphere/icosphere.glb").get_mesh_nodes().front()
+	};
+	area_trigger.area->set_collider(area_trigger.collider);
+	area_trigger.area->set_transform(area_trigger.transform);
+	area_trigger.area->on_collision_enter = [](const auto &other) { std::cout << "enter\n"; };
+	area_trigger.area->on_collision_exit = [](const auto &other) { std::cout << "exit\n"; };
+	area_trigger.collider->radius = 1.0;
+	area_trigger.transform->position = geomath::Vector3D(0.0, 2.0, 0.0);
+	area_trigger.transform->scale = { 1.0, 1.0, 1.0 };
+	area_trigger.mesh_node->set_model_matrix(transform_to_model_matrix(*area_trigger.transform));
+	physics_world.add_object(area_trigger.area);
+	scene.add(area_trigger.mesh_node);
+
 	GroundPlane ground_plane {
 		std::make_shared<tics::StaticBody>(),
 		std::make_shared<tics::Transform>(),
@@ -206,8 +232,10 @@ ProgramState initialize(GLFWwindow* window) {
 
 	auto impulse_solver = std::make_shared<tics::ImpulseSolver>();
 	auto position_solver = std::make_shared<tics::PositionSolver>();
+	auto collision_area_solver = std::make_shared<tics::CollisionAreaSolver>();
 	physics_world.add_solver(impulse_solver);
 	physics_world.add_solver(position_solver);
+	physics_world.add_solver(collision_area_solver);
 
 	renderer->preload(scene);
 
@@ -216,13 +244,15 @@ ProgramState initialize(GLFWwindow* window) {
 	return ProgramState {
 		spheres,
 		ground_plane,
+		area_trigger,
 		ron::PerspectiveCamera(60.0f, 1280.0f/720.0f, 0.1f, 1000.0f),
 		camera_controls,
 		scene,
 		std::move(renderer),
 		physics_world,
 		impulse_solver,
-		position_solver
+		position_solver,
+		collision_area_solver
 	};
 }
 

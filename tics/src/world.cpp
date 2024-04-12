@@ -81,15 +81,6 @@ void World::resolve_collisions(const float delta) {
 
 	for (const auto& collision : collisions) {
 		if (m_collision_event) { m_collision_event(collision); }
-
-		for (const auto wp_object : { collision.a, collision.b }) {
-			if (const auto sp_object = wp_object.lock()) {
-				// check if the object is a CollisionArea
-				if (const auto collision_area = dynamic_cast<CollisionArea *>(sp_object.get())) {
-					collision_area->on_collision_enter(collision);
-				}
-			}
-		}
 	}
 
 	for (auto wp_solver : m_solvers) {

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
+#include <map>
 #include <memory>
 #include <functional>
 
@@ -102,7 +104,7 @@ public:
 	virtual void set_transform(const std::weak_ptr<Transform> transform) override;
 	virtual std::weak_ptr<Transform> get_transform() const override;
 
-	std::function<void(const Collision&)> on_collision_enter;
+	std::function<void(const std::weak_ptr<ICollisionObject> other)> on_collision_enter;
 	std::function<void(const std::weak_ptr<ICollisionObject> other)> on_collision_exit;
 private:
 	std::weak_ptr<Collider> m_collider;
@@ -155,6 +157,18 @@ public:
 	~PositionSolver() {};
 
 	virtual void solve(std::vector<Collision>& collisions, float delta) override;
+};
+
+class CollisionAreaSolver : public ISolver {
+public:
+	~CollisionAreaSolver() {};
+
+	virtual void solve(std::vector<Collision>& collisions, float delta) override;
+private:
+	typedef std::map<CollisionArea *, std::vector<std::weak_ptr<ICollisionObject>>>
+		AreasCollisionRecord;
+
+	AreasCollisionRecord m_areas_collision_record = {};
 };
 
 } // tics
