@@ -23,10 +23,10 @@ void PositionSolver::solve(std::vector<Collision>& collisions, float delta) {
 		else if (sb_a && rb_b) { object_combination = StaticBodyRigidBody; }
 		else { continue; } // no valid object combination combination
 
-		const auto percent = 0.8;
-		const auto depth_tolerance = 0.01; // how much they are allowed to glitch into another
+		const auto percent = 0.8f;
+		const auto depth_tolerance = 0.01f; // how much they are allowed to glitch into another
 
-		const auto depth_with_tolerance = fmax(collision.points.depth - depth_tolerance, 0.0);
+		const float depth_with_tolerance = fmax(collision.points.depth - depth_tolerance, 0.0f);
 		// distance that the objects are moved away from each other
 		const auto correction = collision.points.normal * ( percent *  depth_with_tolerance);
 

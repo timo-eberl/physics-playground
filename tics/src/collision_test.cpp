@@ -30,14 +30,14 @@ CollisionPoints collision_test_sphere_sphere(
 	auto b_radius = tb.scale.x * b_collider.radius;
 
 	auto ab_vector = b_center - a_center;
-	auto ab_distance = ab_vector.length();
+	auto ab_distance = gm::length(ab_vector);
 
 	if (ab_distance > a_radius + b_radius) {
 		// no collision
 		return CollisionPoints();
 	}
 
-	auto ab_normal = ab_vector.normalized();
+	auto ab_normal = gm::normalize(ab_vector);
 
 	auto collision_points = CollisionPoints();
 
@@ -46,8 +46,8 @@ CollisionPoints collision_test_sphere_sphere(
 	collision_points.a = a_center + ab_normal * a_radius;
 	collision_points.b = b_center - ab_normal * b_radius;
 
-	collision_points.normal = ab_normal * -1.0;
-	collision_points.depth = (collision_points.b - collision_points.a).length();
+	collision_points.normal = -ab_normal;
+	collision_points.depth = gm::length(collision_points.b - collision_points.a);
 
 	return collision_points;
 }
@@ -70,7 +70,7 @@ CollisionPoints collision_test_sphere_plane(
 	auto plane_normal = plane_collider.normal; // TODO: rotate with tb
 	auto point_on_plane = plane_normal * plane_collider.distance + tb.position;
 
-	auto distance = plane_normal.dot(sphere_center - point_on_plane);
+	auto distance = gm::dot(plane_normal, sphere_center - point_on_plane);
 
 	if (distance > sphere_radius) {
 		// no collision
@@ -87,7 +87,7 @@ CollisionPoints collision_test_sphere_plane(
 	collision_points.b = sphere_center - plane_normal * distance;
 
 	collision_points.normal = plane_normal;
-	collision_points.depth = (collision_points.b - collision_points.a).length();
+	collision_points.depth = gm::length(collision_points.b - collision_points.a);
 
 	return collision_points;
 }
@@ -124,7 +124,7 @@ CollisionPoints tics::collision_test(
 	// if we swapped the input colliders, we also need to swap the result
 	if (swap) {
 		std::swap(points.a, points.b);
-		points.normal *= -1.0f;
+		points.normal = -points.normal;
 	}
 
 	return points;

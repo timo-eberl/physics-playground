@@ -6,18 +6,18 @@
 #include <memory>
 #include <functional>
 
-#include "geomath.h"
+#include <geomath.h>
 
 namespace tics {
 
 struct Transform {
-	geomath::Vector3D position;
-	geomath::Vector3D scale = { 1.0, 1.0, 1.0 };
+	gm::Vector3 position;
+	gm::Vector3 scale = gm::Vector3(1);
 };
 
 enum ColliderType {
 	SPHERE,
-	PLANE
+	PLANE,
 };
 
 struct Collider {
@@ -26,20 +26,20 @@ struct Collider {
 
 struct SphereCollider : Collider {
 	SphereCollider() { type = SPHERE; };
-	geomath::Vector3D center = { 0.0, 0.0, 0.0 };
+	gm::Vector3 center = gm::Vector3(0);
 	float radius = 1.0f;
 };
 
 struct PlaneCollider : Collider {
 	PlaneCollider() { type = PLANE; };
-	geomath::Vector3D normal = { 0.0, 1.0, 0.0 };
+	gm::Vector3 normal = gm::Vector3(0, 1, 0);
 	float distance = 0.0f;
 };
 
 struct CollisionPoints {
-	geomath::Vector3D a; // furthest point of a into b
-	geomath::Vector3D b; // furthest point of b into a
-	geomath::Vector3D normal; // b - a normalized
+	gm::Vector3 a; // furthest point of a into b
+	gm::Vector3 b; // furthest point of b into a
+	gm::Vector3 normal; // b - a normalized
 	float depth; // length of b - a
 	bool has_collision = false;
 };
@@ -85,8 +85,8 @@ public:
 	virtual void set_transform(const std::weak_ptr<Transform> transform) override;
 	virtual std::weak_ptr<Transform> get_transform() const override;
 
-	geomath::Vector3D velocity = { 0.0, 0.0, 0.0 };
-	geomath::Vector3D force = { 0.0, 0.0, 0.0 };
+	gm::Vector3 velocity = gm::Vector3(0);
+	gm::Vector3 force = gm::Vector3(0);
 
 	float mass = 1.0f;
 	float gravity_scale = 1.0f;
@@ -136,12 +136,12 @@ public:
 
 	void resolve_collisions(const float delta);
 
-	void set_gravity(const geomath::Vector3D gravity);
+	void set_gravity(const gm::Vector3 gravity);
 	void set_collision_event(const std::function<void(const Collision&)> collision_event);
 private:
 	std::vector<std::weak_ptr<ICollisionObject>> m_objects;
 	std::vector<std::weak_ptr<ISolver>> m_solvers;
-	geomath::Vector3D m_gravity = { 0.0f, -9.81f, 0.0f };
+	gm::Vector3 m_gravity = gm::Vector3(0.0f, -9.81f, 0.0f);
 	std::function<void(const Collision&)> m_collision_event;
 };
 

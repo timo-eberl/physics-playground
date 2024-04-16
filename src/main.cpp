@@ -72,7 +72,7 @@ static glm::mat4 transform_to_model_matrix(const tics::Transform &transform) {
 }
 
 static Sphere create_sphere(
-	geomath::Vector3D position, geomath::Vector3D velocity, const ron::Scene &scene,
+	gm::Vector3 position, gm::Vector3 velocity, const ron::Scene &scene,
 	glm::vec3 color = glm::vec3(1.0), float scale = 1.0f, float mass = 1.0f
 ) {
 	static const auto sphere_mesh = ron::gltf::import("default/models/icosphere/icosphere.glb")
@@ -89,7 +89,7 @@ static Sphere create_sphere(
 	sphere.rigid_body->set_transform(sphere.transform);
 	sphere.rigid_body->mass = mass;
 	sphere.transform->position = position;
-	sphere.transform->scale = { scale, scale, scale };
+	sphere.transform->scale = gm::Vector3(scale, scale, scale);
 	sphere.rigid_body->velocity = velocity;
 
 	// copy the default material and modify it
@@ -214,19 +214,19 @@ ProgramState initialize(GLFWwindow* window) {
 	camera_controls.set_target(glm::vec3(0.0f, 0.0f, 0.0f));
 
 	tics::World physics_world;
-	physics_world.set_gravity({ 0.0, -10.0, 0.0 });
+	physics_world.set_gravity(gm::Vector3(0.0, -10.0, 0.0));
 
 	std::vector<Sphere> spheres {};
 
 	auto sphere_1 = create_sphere(
-		{ 0.0, 1.5, 0.25 }, { 0.0, 8.0, 0.0 }, scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
+		gm::Vector3(0.0, 1.5, 0.25), gm::Vector3(0.0, 8.0, 0.0), scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
 	);
 	spheres.emplace_back(sphere_1);
 	physics_world.add_object(sphere_1.rigid_body);
 	scene.add(sphere_1.mesh_node);
 
 	auto sphere_2 = create_sphere(
-		{ -3.0, 1.0, 0.0 }, { 2.0, 12.0, 0.0 }, scene, glm::vec3(0.4, 0.3, 0.1), 1.25f, 1.25f
+		gm::Vector3(-3.0, 1.0, 0.0), gm::Vector3(2.0, 12.0, 0.0), scene, glm::vec3(0.4, 0.3, 0.1), 1.25f, 1.25f
 	);
 	spheres.emplace_back(sphere_2);
 	physics_world.add_object(sphere_2.rigid_body);
@@ -243,18 +243,54 @@ ProgramState initialize(GLFWwindow* window) {
 	area_trigger.area->on_collision_enter = [](const auto &other) { std::cout << "enter\n"; };
 	area_trigger.area->on_collision_exit = [](const auto &other) { std::cout << "exit\n"; };
 	area_trigger.collider->radius = 1.0;
-	area_trigger.transform->position = geomath::Vector3D(0.0, 2.0, 0.0);
-	area_trigger.transform->scale = { 1.0, 1.0, 1.0 };
+	area_trigger.transform->position = gm::Vector3(0.0, 2.0, 0.0);
+	area_trigger.transform->scale = gm::Vector3(1.0, 1.0, 1.0);
 	area_trigger.mesh_node->set_model_matrix(transform_to_model_matrix(*area_trigger.transform));
 	physics_world.add_object(area_trigger.area);
 	scene.add(area_trigger.mesh_node);
+
+	const auto fasdk = gm::Vector<10000>();
+	for (size_t i = 0; i < 10000; i++) {
+		assert(fasdk[i] == 0.0f);
+	}
+
+	const gm::Vector3 fjasdlj = gm::Vector3( 1, 2, 3 );
+	const auto fdsgdsaf = gm::Vector<1, unsigned int>(1.3);
+	std::cout << "fdsgdsaf: " << fdsgdsaf << std::endl;
+	const auto gdasf = gm::Vector2(1,2);
+	const auto fasdgdasf = gm::Vector3(1,2,3);
+	const auto fasdfas = gm::Vector4(1,2,3,4);
+	std::cout << "fasdgdasf: " << fasdgdasf << std::endl;
+	std::cout << "fasdgdasf.xy: " << fasdgdasf.xy << std::endl;
+	std::cout << "fasdgdasf.x: " << fasdgdasf.x << std::endl;
+	std::cout << "fasdgdasf.y: " << fasdgdasf.y << std::endl;
+	std::cout << fasdgdasf[0] << "," << fasdgdasf[1] << "," << fasdgdasf[2] << std::endl;
+	std::cout << "xyz: " << fasdgdasf.x << "," << fasdgdasf.y << "," << fasdgdasf.z << std::endl;
+
+	auto fdas = gm::Vector<5>(1,2,3,4,5);
+	assert(fdas[0] == 1.0f && fdas[1] == 2.0f && fdas[2] == 3.0f && fdas[3] == 4.0f && fdas[4] == 5.0f);
+	auto gfds = gm::Vector<5>({ 1.0f, 2.0f, 3.0f, 4.0f, 5.0f });
+	assert(gfds == fdas);
+	auto gfhdshfsd = gm::Vector<5>(435,2,3,4,5);
+	assert(gfhdshfsd != fdas);
+	std::cout << "gfhdshfsd: " << gfhdshfsd << std::endl;
+
+	auto mat2 = gm::Matrix<2,2>();
+	mat2.data[0][0] = 0;
+	mat2.data[0][1] = 1;
+	mat2.data[0][2] = 3;
+	mat2.data[0][3] = 4;
+	std::cout << "mat2: " << mat2.data[0][0] << "," << mat2.data[0][1] << ","
+		<< mat2.data[1][0] << "," << mat2.data[1][1] << std::endl;
+	std::cout << "mat2: " << mat2.contiguous_data[0] << "," << mat2.contiguous_data[1] << ","
+		<< mat2.contiguous_data[2] << "," << mat2.contiguous_data[3] << std::endl;
 
 	GroundPlane ground_plane {
 		std::make_shared<tics::StaticBody>(),
 		std::make_shared<tics::Transform>(),
 		std::make_shared<tics::PlaneCollider>(),
 	};
-	ground_plane.collider->normal = { 0.0, 1.0, 0.0 };
+	ground_plane.collider->normal = gm::Vector3(0.0, 1.0, 0.0);
 	ground_plane.static_body->set_collider(ground_plane.collider);
 	ground_plane.static_body->set_transform(ground_plane.transform);
 	physics_world.add_object(ground_plane.static_body);
@@ -300,16 +336,16 @@ void process(GLFWwindow* window, ProgramState& state) {
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT == GLFW_PRESS)) {
 		const float size = 0.5 + 0.5 * static_cast<double>(std::rand()) / RAND_MAX;
 		auto sphere = create_sphere(
-			{ // position
+			gm::Vector3( // position
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*1.0,
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX) + 3.0,
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*1.0
-			},
-			{ // velocity
+			),
+			gm::Vector3( // velocity
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5,
 				(    static_cast<double>(std::rand()) / RAND_MAX)*5,
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5
-			},
+			),
 			state.render_scene,
 			glm::vec3( // color
 				static_cast<double>(std::rand()) / RAND_MAX,
