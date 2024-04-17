@@ -13,6 +13,8 @@ namespace gm {
 // todo matrices constructors
 // todo matrix comparison
 // todo matrix <<
+// todo vector constructors like this: vec4(vec2, 0.0, 0.0)
+// todo vector distance
 
 struct Quaternion {
 	double i;
@@ -34,12 +36,19 @@ struct Vector {
 	template <typename ... Ts>
 	explicit constexpr Vector(Ts ... vals) {
 		static_assert(std::conjunction<std::is_convertible<T,Ts>...>::value, "incompatible type");
-		static_assert(sizeof...(vals) == n, "incorrect number of arguments");
+		static_assert(sizeof...(vals) == n || sizeof...(vals) == 1, "incorrect number of arguments");
 
-		unsigned int i = 0;
-		for (const auto element : {vals...}) {
-			data[i] = element;
-			i++;
+		if (sizeof...(vals) == 1) { // fill whole array with a single value
+			for (const auto element : {vals...}) {
+				for (size_t i = 0; i < n; i++) { data[i] = element; }
+			}
+		}
+		else {
+			unsigned int i = 0;
+			for (const auto element : {vals...}) {
+				data[i] = element;
+				i++;
+			}
 		}
 	}
 
@@ -188,9 +197,26 @@ Floating dot(const Vector<3, Floating> &lhs, const Vector<3, Floating> &rhs) {
 
 template <unsigned int n, typename Floating,
 	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
-bool is_zero_approx(const Vector<n, Floating> &value, const Floating epsilon) {
-	for (size_t i = 0; i < n; i++) { if (abs(value[i]) >= epsilon) return false; }
+bool is_zero_approx(const Vector<n, Floating> &value, const Floating epsilon = 0.001) {
+	for (size_t i = 0; i < n; i++) { if (std::abs(value[i]) >= epsilon) return false; }
 	return true;
+}
+
+template <typename Floating,
+	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
+bool is_zero_approx(const Floating &value, const Floating epsilon = 0.001) { return std::abs(value) < epsilon; }
+
+template <unsigned int n, typename Floating,
+	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
+bool equals_approx(const Vector<n, Floating> &lhs, const Vector<n, Floating> &rhs, const Floating epsilon = 0.001) {
+	for (size_t i = 0; i < n; i++) { if (std::abs(lhs[i] - rhs[i]) >= epsilon) return false; }
+	return true;
+}
+
+template <typename Floating,
+	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
+bool equals_approx(const Floating &lhs, const Floating &rhs, const Floating epsilon = 0.001) {
+	return std::abs(rhs - lhs) < epsilon;
 }
 
 // add
