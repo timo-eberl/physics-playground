@@ -23,7 +23,7 @@ struct Quaternion {
 	double w;
 };
 
-template <unsigned int n, typename T = float>
+template <unsigned int n, typename T = double>
 struct Vector {
 	static_assert(n > 0, "n must be greater than 0");
 
@@ -65,7 +65,7 @@ struct Vector {
 	const T &operator[](std::size_t idx) const { assert(idx < n); return data[idx]; }
 };
 
-template <unsigned int rows, unsigned int cols, typename T = float>
+template <unsigned int rows, unsigned int cols, typename T = double>
 struct Matrix {
 	static_assert(rows > 0 && cols > 0, "rows and cols must be greater than 0");
 	union {
@@ -74,24 +74,24 @@ struct Matrix {
 	};
 };
 
-typedef Vector<2, float> Vector2;
-typedef Vector<3, float> Vector3;
-typedef Vector<4, float> Vector4;
-typedef Matrix<2,2, float> Matrix2;
-typedef Matrix<3,3, float> Matrix3;
-typedef Matrix<4,4, float> Matrix4;
+typedef Vector<2, double> Vector2;
+typedef Vector<3, double> Vector3;
+typedef Vector<4, double> Vector4;
+typedef Matrix<2,2, double> Matrix2;
+typedef Matrix<3,3, double> Matrix3;
+typedef Matrix<4,4, double> Matrix4;
 
-template <> struct Vector<2, float> {
+template <> struct Vector<2, double> {
 	union {
-		float data[2];
-		struct { float x, y; };
+		double data[2];
+		struct { double x, y; };
 	};
 
 	// template specializations don't inherit member functions - we have to re-implement them
 	explicit Vector() = default;
-	explicit constexpr Vector(float value) { data[0] = value; data[1] = value; }
-	explicit constexpr Vector(float t0, float t1) { data[0] = t0; data[1] = t1; }
-	explicit constexpr Vector(std::initializer_list<float> l) {
+	explicit constexpr Vector(double value) { data[0] = value; data[1] = value; }
+	explicit constexpr Vector(double t0, double TVec) { data[0] = t0; data[1] = TVec; }
+	explicit constexpr Vector(std::initializer_list<double> l) {
 		assert(l.size() == 2);
 		unsigned int i = 0;
 		for (const auto element : l) {
@@ -99,21 +99,21 @@ template <> struct Vector<2, float> {
 			i++;
 		}
 	}
-	float &operator[](std::size_t idx) { assert(idx < 2); return data[idx]; }
-	const float &operator[](std::size_t idx) const { assert(idx < 2); return data[idx]; }
+	double &operator[](std::size_t idx) { assert(idx < 2); return data[idx]; }
+	const double &operator[](std::size_t idx) const { assert(idx < 2); return data[idx]; }
 };
 
-template <> struct Vector<3, float> {
+template <> struct Vector<3, double> {
 	union {
-		float data[3];
-		struct { float x, y, z; };
+		double data[3];
+		struct { double x, y, z; };
 		Vector<2> xy;
 	};
 	// template specializations don't inherit mumber functions - we have to re-implement them
 	explicit Vector() = default;
-	explicit constexpr Vector(float value) { data[0] = value; data[1] = value; data[2] = value; }
-	explicit constexpr Vector(float t0, float t1, float t2) { data[0] = t0; data[1] = t1; data[2] = t2; }
-	explicit constexpr Vector(std::initializer_list<float> l) {
+	explicit constexpr Vector(double value) { data[0] = value; data[1] = value; data[2] = value; }
+	explicit constexpr Vector(double t0, double TVec, double TVal) { data[0] = t0; data[1] = TVec; data[2] = TVal; }
+	explicit constexpr Vector(std::initializer_list<double> l) {
 		assert(l.size() == 3);
 		unsigned int i = 0;
 		for (const auto element : l) {
@@ -121,24 +121,24 @@ template <> struct Vector<3, float> {
 			i++;
 		}
 	}
-	float &operator[](std::size_t idx) { assert(idx < 3); return data[idx]; }
-	const float &operator[](std::size_t idx) const { assert(idx < 3); return data[idx]; }
+	double &operator[](std::size_t idx) { assert(idx < 3); return data[idx]; }
+	const double &operator[](std::size_t idx) const { assert(idx < 3); return data[idx]; }
 };
 
-template <> struct Vector<4, float> {
+template <> struct Vector<4, double> {
 	union {
-		float data[4];
-		struct { float x, y, z, w; };
+		double data[4];
+		struct { double x, y, z, w; };
 		Vector<2> xy;
 		Vector<3> xyz;
 	};
 	// template specializations don't inherit mumber functions - we have to re-implement them
 	explicit Vector() = default;
-	explicit constexpr Vector(float value) { data[0] = value; data[1] = value; data[2] = value; data[3] = value; }
-	explicit constexpr Vector(float t0, float t1, float t2, float t3) {
-		data[0] = t0; data[1] = t1; data[2] = t2; data[3] = t3;
+	explicit constexpr Vector(double value) { data[0] = value; data[1] = value; data[2] = value; data[3] = value; }
+	explicit constexpr Vector(double t0, double TVec, double TVal, double t3) {
+		data[0] = t0; data[1] = TVec; data[2] = TVal; data[3] = t3;
 	}
-	explicit constexpr Vector(std::initializer_list<float> l) {
+	explicit constexpr Vector(std::initializer_list<double> l) {
 		assert(l.size() == 4);
 		unsigned int i = 0;
 		for (const auto element : l) {
@@ -146,8 +146,8 @@ template <> struct Vector<4, float> {
 			i++;
 		}
 	}
-	float &operator[](std::size_t idx) { assert(idx < 4); return data[idx]; }
-	const float &operator[](std::size_t idx) const { assert(idx < 4); return data[idx]; }
+	double &operator[](std::size_t idx) { assert(idx < 4); return data[idx]; }
+	const double &operator[](std::size_t idx) const { assert(idx < 4); return data[idx]; }
 };
 
 // free functions
@@ -171,65 +171,65 @@ std::ostream &operator<<(std::ostream &os, const Vector<n, T> &value) {
 
 // mathematical operations
 
-template <unsigned int n, typename Floating,
-	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
-Floating length_squared(const Vector<n, Floating> &value) {
-	Floating ls = 0.0;
+template <unsigned int n, typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+F length_squared(const Vector<n, F> &value) {
+	F ls = 0.0;
 	for (size_t i = 0; i < n; i++) { ls += value[i] * value[i]; }
 	return ls;
 }
 
-template <unsigned int n, typename Floating,
-	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
-Floating length(const Vector<n, Floating> &value) { return sqrt(length_squared(value)); }
+template <unsigned int n, typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+F length(const Vector<n, F> &value) { return sqrt(length_squared(value)); }
 
-template <unsigned int n, typename Floating,
-	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
-Vector<n, Floating> normalize(const Vector<n, Floating> &value) {
+template <unsigned int n, typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> normalize(const Vector<n, F> &value) {
 	return value / length(value);
 }
 
-template <typename Floating,
-	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
-Floating dot(const Vector<3, Floating> &lhs, const Vector<3, Floating> &rhs) {
+template <typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+F dot(const Vector<3, F> &lhs, const Vector<3, F> &rhs) {
 	return (lhs[0]*rhs[0]) + (lhs[1]*rhs[1]) + (lhs[2]*rhs[2]);
 }
 
-template <unsigned int n, typename Floating,
-	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
-bool is_zero_approx(const Vector<n, Floating> &value, const Floating epsilon = 0.001) {
+template <unsigned int n, typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+bool is_zero_approx(const Vector<n, F> &value, const F epsilon = 0.001) {
 	for (size_t i = 0; i < n; i++) { if (std::abs(value[i]) >= epsilon) return false; }
 	return true;
 }
 
-template <typename Floating,
-	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
-bool is_zero_approx(const Floating &value, const Floating epsilon = 0.001) { return std::abs(value) < epsilon; }
+template <typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+bool is_zero_approx(const F &value, const F epsilon = 0.001) { return std::abs(value) < epsilon; }
 
-template <unsigned int n, typename Floating,
-	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
-bool equals_approx(const Vector<n, Floating> &lhs, const Vector<n, Floating> &rhs, const Floating epsilon = 0.001) {
+template <unsigned int n, typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+bool equals_approx(const Vector<n, F> &lhs, const Vector<n, F> &rhs, const F epsilon = 0.001) {
 	for (size_t i = 0; i < n; i++) { if (std::abs(lhs[i] - rhs[i]) >= epsilon) return false; }
 	return true;
 }
 
-template <typename Floating,
-	std::enable_if_t<std::is_floating_point<Floating>::value, bool> = true>
-bool equals_approx(const Floating &lhs, const Floating &rhs, const Floating epsilon = 0.001) {
+template <typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+bool equals_approx(const F &lhs, const F &rhs, const F epsilon = 0.001) {
 	return std::abs(rhs - lhs) < epsilon;
 }
 
 // add
 
-template <unsigned int n, typename T>
-Vector<n, T> operator+(const Vector<n, T> &lhs, const T &rhs) {
-	Vector<n, T> v;
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> operator+(const Vector<n, TVec> &lhs, const TVal &rhs) {
+	Vector<n, TVec> v;
 	for (size_t i = 0; i < n; i++) { v[i] = lhs[i] + rhs; }
 	return v;
 }
 
-template <unsigned int n, typename T>
-Vector<n, T> operator+(const T &lhs, const Vector<n, T> &rhs) { return rhs + lhs; }
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> operator+(const TVal &lhs, const Vector<n, TVec> &rhs) { return rhs + lhs; }
 
 template <unsigned int n, typename T>
 Vector<n, T> operator+(const Vector<n, T> &lhs, const Vector<n, T> &rhs) {
@@ -241,8 +241,8 @@ Vector<n, T> operator+(const Vector<n, T> &lhs, const Vector<n, T> &rhs) {
 template <unsigned int n, typename T>
 Vector<n, T> &operator+=(Vector<n, T> &lhs, const Vector<n, T> &rhs) { lhs = lhs + rhs; return lhs; }
 
-template <unsigned int n, typename T>
-Vector<n, T> &operator+=(Vector<n, T> &lhs, const T &rhs) { lhs = lhs + rhs; return lhs; }
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> &operator+=(Vector<n, TVec> &lhs, const TVal &rhs) { lhs = lhs + rhs; return lhs; }
 
 // unary negation
 
@@ -255,15 +255,15 @@ Vector<n, T> operator-(const Vector<n, T> &value) {
 
 // subtract
 
-template <unsigned int n, typename T>
-Vector<n, T> operator-(const Vector<n, T> &lhs, const T &rhs) {
-	Vector<n, T> v;
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> operator-(const Vector<n, TVec> &lhs, const TVal &rhs) {
+	Vector<n, TVec> v;
 	for (size_t i = 0; i < n; i++) { v[i] = lhs[i] - rhs; }
 	return v;
 }
 
-template <unsigned int n, typename T>
-Vector<n, T> operator-(const T &lhs, const Vector<n, T> &rhs) { return -rhs + lhs; }
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> operator-(const TVal &lhs, const Vector<n, TVec> &rhs) { return -rhs + lhs; }
 
 template <unsigned int n, typename T>
 Vector<n, T> operator-(const Vector<n, T> &lhs, const Vector<n, T> &rhs) {
@@ -275,20 +275,20 @@ Vector<n, T> operator-(const Vector<n, T> &lhs, const Vector<n, T> &rhs) {
 template <unsigned int n, typename T>
 Vector<n, T> &operator-=(Vector<n, T> &lhs, const Vector<n, T> &rhs) { lhs = lhs - rhs; return lhs; }
 
-template <unsigned int n, typename T>
-Vector<n, T> &operator-=(Vector<n, T> &lhs, const T &rhs) { lhs = lhs - rhs; return lhs; }
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> &operator-=(Vector<n, TVec> &lhs, const TVal &rhs) { lhs = lhs - rhs; return lhs; }
 
 // multiply
 
-template <unsigned int n, typename T>
-Vector<n, T> operator*(const Vector<n, T> &lhs, const T &rhs) {
-	Vector<n, T> v;
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> operator*(const Vector<n, TVec> &lhs, const TVal &rhs) {
+	Vector<n, TVec> v;
 	for (size_t i = 0; i < n; i++) { v[i] = lhs[i] * rhs; }
 	return v;
 }
 
-template <unsigned int n, typename T>
-Vector<n, T> operator*(const T &lhs, const Vector<n, T> &rhs) { return rhs * lhs; }
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> operator*(const TVal &lhs, const Vector<n, TVec> &rhs) { return rhs * lhs; }
 
 template <unsigned int n, typename T>
 Vector<n, T> operator*(const Vector<n, T> &lhs, const Vector<n, T> &rhs) {
@@ -300,21 +300,21 @@ Vector<n, T> operator*(const Vector<n, T> &lhs, const Vector<n, T> &rhs) {
 template <unsigned int n, typename T>
 Vector<n, T> &operator*=(Vector<n, T> &lhs, const Vector<n, T> &rhs) { lhs = lhs * rhs; return lhs; }
 
-template <unsigned int n, typename T>
-Vector<n, T> &operator*=(Vector<n, T> &lhs, const T &rhs) { lhs = lhs * rhs; return lhs; }
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> &operator*=(Vector<n, TVec> &lhs, const TVal &rhs) { lhs = lhs * rhs; return lhs; }
 
 // division
 
-template <unsigned int n, typename T>
-Vector<n, T> operator/(const Vector<n, T> &lhs, const T &rhs) {
-	Vector<n, T> v;
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> operator/(const Vector<n, TVec> &lhs, const TVal &rhs) {
+	Vector<n, TVec> v;
 	for (size_t i = 0; i < n; i++) { v[i] = lhs[i] / rhs; }
 	return v;
 }
 
-template <unsigned int n, typename T>
-Vector<n, T> operator/(const T &lhs, const Vector<n, T> &rhs) {
-	Vector<n, T> v;
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> operator/(const TVal &lhs, const Vector<n, TVec> &rhs) {
+	Vector<n, TVec> v;
 	for (size_t i = 0; i < n; i++) { v[i] = lhs / rhs[i]; }
 	return v;
 }
@@ -329,7 +329,7 @@ Vector<n, T> operator/(const Vector<n, T> &lhs, const Vector<n, T> &rhs) {
 template <unsigned int n, typename T>
 Vector<n, T> &operator/=(Vector<n, T> &lhs, const Vector<n, T> &rhs) { lhs = lhs / rhs; return lhs; }
 
-template <unsigned int n, typename T>
-Vector<n, T> &operator/=(Vector<n, T> &lhs, T &rhs) { lhs = lhs / rhs; return lhs; }
+template <unsigned int n, typename TVec, typename TVal>
+Vector<n, TVec> &operator/=(Vector<n, TVec> &lhs, TVal &rhs) { lhs = lhs / rhs; return lhs; }
 
 } // gm

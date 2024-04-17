@@ -75,7 +75,7 @@ int main() {
 	const auto v9_0 = gm::Vector2(1.0, -2.0);
 	const auto v9_1 = gm::Vector2(1.0001, -2.0001);
 	assert(gm::equals_approx(v9_0, v9_1));
-	assert(!gm::equals_approx(v9_0, v9_1, 0.00005f)); // custom accuracy
+	assert(!gm::equals_approx(v9_0, v9_1, 0.00005)); // custom accuracy
 	const auto v9_2 = gm::Vector2(1.0001, -2.1);
 	assert(!gm::equals_approx(v9_0, v9_2));
 
@@ -85,7 +85,7 @@ int main() {
 
 	const auto v10_0 = gm::Vector<10>(0.0001);
 	assert(gm::is_zero_approx(v10_0));
-	assert(!gm::is_zero_approx(v10_0, 0.00005f)); // custom accuracy
+	assert(!gm::is_zero_approx(v10_0, 0.00005)); // custom accuracy
 	const auto v10_1 = gm::Vector<10>(0.1);
 	assert(!gm::is_zero_approx(v10_1));
 	const auto v10_2 = gm::Vector<10>(-0.1);
@@ -98,7 +98,7 @@ int main() {
 	const auto v11_0 = gm::Vector2(2.234, 4.234);
 	const auto v11_1 = gm::Vector2(2, 4) + gm::Vector2(0.234);
 	assert(gm::equals_approx(v11_0, v11_1));
-	const auto v11_2 = gm::Vector2(2, 4) + 0.234f;
+	const auto v11_2 = gm::Vector<2, double>(2, 4) + 0.234f; // add float to double vector
 	assert(gm::equals_approx(v11_0, v11_2));
 	const auto v11_3 = 0.234f + gm::Vector2(2, 4);
 	assert(gm::equals_approx(v11_0, v11_3));
