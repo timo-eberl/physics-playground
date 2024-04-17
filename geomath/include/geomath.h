@@ -60,6 +60,21 @@ struct Vector {
 		}
 	}
 
+	template <unsigned int nv, typename ... Ts>
+	explicit constexpr Vector(const Vector<nv, T> &vector, Ts ... vals) {
+		static_assert(std::conjunction<std::is_convertible<T,Ts>...>::value, "incompatible type");
+		static_assert(sizeof...(vals) + nv == n, "incorrect number of arguments");
+
+		unsigned int i = 0;
+		for (; i < nv; i++) {
+			data[i] = vector[i];
+		}
+		for (const auto element : {vals...}) {
+			data[i] = element;
+			i++;
+		}
+	}
+
 	T &operator[](std::size_t idx) { assert(idx < n); return data[idx]; }
 	const T &operator[](std::size_t idx) const { assert(idx < n); return data[idx]; }
 };
@@ -89,7 +104,7 @@ template <typename T> struct Vector<2, T> {
 	// template specializations don't inherit member functions - we have to re-implement them
 	explicit Vector() = default;
 	explicit constexpr Vector(T value) { data[0] = value; data[1] = value; }
-	explicit constexpr Vector(T t0, T TVec) { data[0] = t0; data[1] = TVec; }
+	explicit constexpr Vector(T t0, T t1) { data[0] = t0; data[1] = t1; }
 	explicit constexpr Vector(std::initializer_list<T> l) {
 		assert(l.size() == 2);
 		unsigned int i = 0;
@@ -98,6 +113,7 @@ template <typename T> struct Vector<2, T> {
 			i++;
 		}
 	}
+	explicit constexpr Vector(Vector<1,T> t0, T t1) { data[0] = t0[0]; data[1] = t1; }
 	T &operator[](std::size_t idx) { assert(idx < 2); return data[idx]; }
 	const T &operator[](std::size_t idx) const { assert(idx < 2); return data[idx]; }
 };
@@ -111,7 +127,7 @@ template <typename T> struct Vector<3, T> {
 	// template specializations don't inherit mumber functions - we have to re-implement them
 	explicit Vector() = default;
 	explicit constexpr Vector(T value) { data[0] = value; data[1] = value; data[2] = value; }
-	explicit constexpr Vector(T t0, T TVec, T TVal) { data[0] = t0; data[1] = TVec; data[2] = TVal; }
+	explicit constexpr Vector(T t0, T t1, T t2) { data[0] = t0; data[1] = t1; data[2] = t2; }
 	explicit constexpr Vector(std::initializer_list<T> l) {
 		assert(l.size() == 3);
 		unsigned int i = 0;
@@ -120,6 +136,8 @@ template <typename T> struct Vector<3, T> {
 			i++;
 		}
 	}
+	explicit constexpr Vector(Vector<1,T> t0, T t1, T t2) { data[0] = t0[0]; data[1] = t1; data[2] = t2; }
+	explicit constexpr Vector(Vector<2,T> t01, T t2) { data[0] = t01[0]; data[1] = t01[1]; data[2] = t2; }
 	T &operator[](std::size_t idx) { assert(idx < 3); return data[idx]; }
 	const T &operator[](std::size_t idx) const { assert(idx < 3); return data[idx]; }
 };
@@ -134,8 +152,8 @@ template <typename T> struct Vector<4, T> {
 	// template specializations don't inherit mumber functions - we have to re-implement them
 	explicit Vector() = default;
 	explicit constexpr Vector(T value) { data[0] = value; data[1] = value; data[2] = value; data[3] = value; }
-	explicit constexpr Vector(T t0, T TVec, T TVal, T t3) {
-		data[0] = t0; data[1] = TVec; data[2] = TVal; data[3] = t3;
+	explicit constexpr Vector(T t0, T t1, T t2, T t3) {
+		data[0] = t0; data[1] = t1; data[2] = t2; data[3] = t3;
 	}
 	explicit constexpr Vector(std::initializer_list<T> l) {
 		assert(l.size() == 4);
@@ -145,6 +163,9 @@ template <typename T> struct Vector<4, T> {
 			i++;
 		}
 	}
+	explicit constexpr Vector(Vector<1,T> t0, T t1, T t2, T t3) { data[0]=t0[0]; data[1]=t1; data[2]=t2; data[3]=t3; }
+	explicit constexpr Vector(Vector<2,T> t01, T t2, T t3) { data[0]=t01[0]; data[1]=t01[1]; data[2]=t2; data[3]=t3; }
+	explicit constexpr Vector(Vector<3,T> t012, T t3) { data[0]=t012[0]; data[1]=t012[1]; data[2]=t012[2]; data[3]=t3; }
 	T &operator[](std::size_t idx) { assert(idx < 4); return data[idx]; }
 	const T &operator[](std::size_t idx) const { assert(idx < 4); return data[idx]; }
 };

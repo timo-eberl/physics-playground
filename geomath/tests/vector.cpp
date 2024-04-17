@@ -21,6 +21,15 @@ int main() {
 	// initializer list supports initializing with different types that are convertible
 	const auto v0_3 = gm::Vector<5>( { 1, 2.0, 3.0f, 4u, 5l } );
 	assert(v0_0 == v0_3);
+	const auto v0_4 = gm::Vector<5>(gm::Vector3(1,2,3) ,4,5);
+	assert(v0_0 == v0_4);
+
+	assert( gm::Vector2(1,2) == gm::Vector2(gm::Vector<1>(1),2) );
+	assert( gm::Vector3(1,2,3) == gm::Vector3(gm::Vector<1>(1),2,3) );
+	assert( gm::Vector3(1,2,3) == gm::Vector3(gm::Vector2(1,2),3) );
+	assert( gm::Vector4(1,2,3,4) == gm::Vector4(gm::Vector<1>(1),2,3,4) );
+	assert( gm::Vector4(1,2,3,4) == gm::Vector4(gm::Vector<2>(1,2),3,4) );
+	assert( gm::Vector4(1,2,3,4) == gm::Vector4(gm::Vector<3>(1,2,3),4) );
 
 	const auto v1_0 = gm::Vector<5>(3,4,5,6,7);
 	assert(v0_0 != v1_0);
