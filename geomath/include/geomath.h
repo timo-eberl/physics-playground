@@ -14,7 +14,6 @@ namespace gm {
 // todo matrix comparison
 // todo matrix <<
 // todo vector constructors like this: vec4(vec2, 0.0, 0.0)
-// todo vector distance
 
 struct Quaternion {
 	double i;
@@ -185,6 +184,14 @@ F length(const Vector<n, F> &value) { return sqrt(length_squared(value)); }
 
 template <unsigned int n, typename F,
 	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+F distance(const Vector<n, F> &lhs, const Vector<n, F> &rhs) { return length(lhs - rhs); }
+
+template <unsigned int n, typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+F distance_squared(const Vector<n, F> &lhs, const Vector<n, F> &rhs) { return length_squared(lhs - rhs); }
+
+template <unsigned int n, typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
 Vector<n, F> normalize(const Vector<n, F> &value) {
 	return value / length(value);
 }
@@ -193,6 +200,100 @@ template <typename F,
 	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
 F dot(const Vector<3, F> &lhs, const Vector<3, F> &rhs) {
 	return (lhs[0]*rhs[0]) + (lhs[1]*rhs[1]) + (lhs[2]*rhs[2]);
+}
+
+template <typename F>
+Vector<3, F> cross(const Vector<3, F> &a, const Vector<3, F> &b) {
+	return Vector<3, F>(
+		a[1]*b[2] - a[2]*b[1], // ay*bz - az*by
+		a[2]*b[0] - a[0]*b[2], // az*bx - ax*bz
+		a[0]*b[1] - a[1]*b[0]  // ax*by - ay*bx
+	);
+}
+
+template <unsigned int n, typename F, typename FT,
+	std::enable_if_t<std::is_floating_point<FT>::value, bool> = true,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> lerp(const Vector<n, F> &a, const Vector<n, F> &b, const FT t) { return a + t*(b-a); }
+
+template <unsigned int n, typename F, typename FT,
+	std::enable_if_t<std::is_floating_point<FT>::value, bool> = true,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> lerp(const Vector<n, F> &a, const Vector<n, F> &b, const Vector<n, FT> &t) { return a + t*(b-a); }
+
+template <unsigned int n, typename F, typename FT,
+	std::enable_if_t<std::is_floating_point<FT>::value, bool> = true,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> inverse_lerp(const Vector<n, F> &a, const Vector<n, F> &b, const FT v) {
+	return (v-a) / (b-a);
+}
+
+template <unsigned int n, typename F, typename FT,
+	std::enable_if_t<std::is_floating_point<FT>::value, bool> = true,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> inverse_lerp(const Vector<n, F> &a, const Vector<n, F> &b, const Vector<n, FT> &v) {
+	return (v-a) / (b-a);
+}
+
+template <unsigned int n, typename F, typename FC,
+	std::enable_if_t<std::is_floating_point<FC>::value || std::is_integral<FC>::value, bool> = true,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> max(const Vector<n, F> &a, const FC &b) {
+	Vector<n, F> v;
+	for (size_t i = 0; i < n; i++) { v[i] = a[i] > b ? a[i] : b; }
+	return v;
+}
+
+template <unsigned int n, typename F, typename FC,
+	std::enable_if_t<std::is_floating_point<FC>::value || std::is_integral<FC>::value, bool> = true,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> max(const FC &a, const Vector<n, F> &b) { return max(b, a); }
+
+template <unsigned int n, typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> max(const Vector<n, F> &a, const Vector<n, F> &b) {
+	Vector<n, F> v;
+	for (size_t i = 0; i < n; i++) { v[i] = a[i] > b[i] ? a[i] : b[i]; }
+	return v;
+}
+
+template <unsigned int n, typename F, typename FC,
+	std::enable_if_t<std::is_floating_point<FC>::value || std::is_integral<FC>::value, bool> = true,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> min(const Vector<n, F> &a, const FC &b) {
+	Vector<n, F> v;
+	for (size_t i = 0; i < n; i++) { v[i] = a[i] < b ? a[i] : b; }
+	return v;
+}
+
+template <unsigned int n, typename F, typename FC,
+	std::enable_if_t<std::is_floating_point<FC>::value || std::is_integral<FC>::value, bool> = true,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> min(const FC &a, const Vector<n, F> &b) { return min(b, a); }
+
+template <unsigned int n, typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> min(const Vector<n, F> &a, const Vector<n, F> &b) {
+	Vector<n, F> v;
+	for (size_t i = 0; i < n; i++) { v[i] = a[i] < b[i] ? a[i] : b[i]; }
+	return v;
+}
+
+template <unsigned int n, typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> clamp01(const Vector<n, F> &v) { return clamp(v, 0, 1); }
+
+template <unsigned int n, typename F, typename FC,
+	std::enable_if_t<std::is_floating_point<FC>::value || std::is_integral<FC>::value, bool> = true,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> clamp(const Vector<n, F> &v, const FC &min, const FC &max) {
+	return gm::max(min, gm::min(max, v));
+}
+
+template <unsigned int n, typename F,
+	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
+Vector<n, F> clamp(const Vector<n, F> &v, const Vector<n, F> &min, const Vector<n, F> &max) {
+	return gm::max(min, gm::min(max, v));
 }
 
 template <unsigned int n, typename F, typename FE = F,

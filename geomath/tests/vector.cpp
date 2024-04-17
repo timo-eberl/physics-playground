@@ -1,5 +1,13 @@
 #include "geomath.h"
 
+gm::Vector3 generate_random_vec3() {
+	return gm::Vector3(
+		static_cast<double>(std::rand()) / RAND_MAX,
+		static_cast<double>(std::rand()) / RAND_MAX,
+		static_cast<double>(std::rand()) / RAND_MAX
+	);
+}
+
 int main() {
 	const auto v0_0 = gm::Vector<5>(1,2,3,4,5);
 	assert(v0_0[0] == 1.0f && v0_0[1] == 2.0f && v0_0[2] == 3.0f && v0_0[3] == 4.0f && v0_0[4] == 5.0f);
@@ -140,8 +148,63 @@ int main() {
 	v15_2 /= gm::Vector2(4, 5);
 	assert(gm::equals_approx(v15_0, v15_2));
 
-	const auto v16_0 = gm::Vector<10000>(); // default initialized vector should be all zeros
+	// default initialized vector should be all zeros
+	const auto v16_0 = gm::Vector<10000>();
 	for (size_t i = 0; i < 10000; i++) {
 		assert(v16_0[i] == 0);
 	}
+
+	assert(gm::equals_approx(gm::length(gm::Vector3(1, 2, 3)), 3.7416573867739413));
+	assert(gm::equals_approx(gm::length(gm::Vector<5,float>(3,6,3,5,3)), 9.38083151964686f));
+
+	for (size_t i = 0; i < 10000; i++) {
+		const auto random_vector_0 = generate_random_vec3();
+		const auto random_vector_1 = generate_random_vec3();
+		// if length_squared of one vector is greater than of the other vector
+		// the same is true for length
+		assert(
+			gm::length(random_vector_0) > gm::length(random_vector_1)
+			== gm::length_squared(random_vector_0) > gm::length_squared(random_vector_1)
+		);
+	}
+
+	const auto v18_0 = gm::Vector3(-5.2,3.8,10);
+	assert(gm::equals_approx(gm::distance(v18_0, v18_0), 0.0));
+	const auto v18_1 = gm::Vector3(8.7,-4.1,3);
+	assert(gm::equals_approx(gm::distance(v18_0, v18_1), 17.4534));
+
+	const auto dist_squared_0 = gm::distance_squared(
+		gm::Vector3(4), gm::Vector3(4,4,3.8)
+	);
+	const auto dist_squared_1 = gm::distance_squared(
+		gm::Vector3(4), gm::Vector3(4,4,3.9)
+	);
+	assert(dist_squared_0 > dist_squared_1);
+
+	{ // lerp and inverse lerp
+		const auto a = gm::Vector2(-2, 10);
+		const auto b = gm::Vector2(2, 20);
+		const auto v = gm::lerp(a, b, 0.35);
+		assert(gm::equals_approx(v, gm::Vector2(-0.6, 13.5)));
+		const auto t = gm::inverse_lerp(a, b, 13.5);
+		assert(gm::equals_approx(t, gm::Vector2(3.875, 0.35)));
+		const auto v2 = gm::lerp(a, b, gm::Vector2(0.5, 0.35));
+		assert(gm::equals_approx(v2, gm::Vector2(0.0,13.5)));
+		const auto t2 = gm::inverse_lerp(a, b, gm::Vector2(-0.6, 13.5));
+		assert(gm::equals_approx(t2, gm::Vector2(0.35)));
+	}
+
+	assert( gm::max(gm::Vector2(-1,3), gm::Vector2(2,1)) == gm::Vector2(2,3) );
+	assert( gm::min(gm::Vector2(-1,3), gm::Vector2(2,1)) == gm::Vector2(-1,1) );
+	assert( gm::clamp(gm::Vector2(-2, 3), -1.0, 1.0) == gm::Vector2(-1, 1) );
+	assert( gm::clamp(gm::Vector2(-2, 3), -1, 1) == gm::Vector2(-1, 1) );
+	assert(
+		gm::clamp(gm::Vector2(-2, 3), gm::Vector2(-1, 1), gm::Vector2(1, 2))
+		== gm::Vector2(-1, 2)
+	);
+	assert( gm::clamp01(gm::Vector2(-2.0, 0.5)) == gm::Vector2(0.0, 0.5) );
+
+	assert( gm::cross(gm::Vector3(1,0,0), gm::Vector3(0,1,0)) == gm::Vector3(0,0,1) );
+	assert( gm::cross(gm::Vector3(2,0,0), gm::Vector3(0,3,0)) == gm::Vector3(0,0,6) );
+	assert( gm::cross(gm::Vector3(1,2,3), gm::Vector3(3,4,5)) == gm::Vector3(-2,4,-2) );
 }
