@@ -80,15 +80,20 @@ int main() {
 	assert(!gm::equals_approx(v9_0, v9_2));
 
 	assert(gm::is_zero_approx(0.0001));
-	assert(!gm::is_zero_approx(0.0001, 0.00005));
+	assert(!gm::is_zero_approx(0.0001, 0.00005)); // custom accuracy
+	assert(!gm::is_zero_approx(0.0001f, 0.00005)); // custom accuracy
+	assert(!gm::is_zero_approx(0.0001, 0.00005f)); // custom accuracy
+	assert(!gm::is_zero_approx(0.0001, 0));
 	assert(!gm::is_zero_approx(0.001));
 
 	const auto v10_0 = gm::Vector<10>(0.0001);
 	assert(gm::is_zero_approx(v10_0));
+	assert(!gm::is_zero_approx(v10_0, 0)); // custom accuracy
+	assert(!gm::is_zero_approx(v10_0, 0.00005f)); // custom accuracy
 	assert(!gm::is_zero_approx(v10_0, 0.00005)); // custom accuracy
 	const auto v10_1 = gm::Vector<10>(0.1);
 	assert(!gm::is_zero_approx(v10_1));
-	const auto v10_2 = gm::Vector<10>(-0.1);
+	const auto v10_2 = gm::Vector<10>(-0.1f);
 	assert(!gm::is_zero_approx(v10_2));
 	const auto v10_3 = gm::Vector<10, double>(0.0001);
 	assert(gm::is_zero_approx(v10_3));
@@ -134,4 +139,9 @@ int main() {
 	assert(!gm::equals_approx(v15_0, v15_2));
 	v15_2 /= gm::Vector2(4, 5);
 	assert(gm::equals_approx(v15_0, v15_2));
+
+	const auto v16_0 = gm::Vector<10000>(); // default initialized vector should be all zeros
+	for (size_t i = 0; i < 10000; i++) {
+		assert(v16_0[i] == 0);
+	}
 }

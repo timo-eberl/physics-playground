@@ -195,27 +195,27 @@ F dot(const Vector<3, F> &lhs, const Vector<3, F> &rhs) {
 	return (lhs[0]*rhs[0]) + (lhs[1]*rhs[1]) + (lhs[2]*rhs[2]);
 }
 
-template <unsigned int n, typename F,
+template <unsigned int n, typename F, typename FE = F,
 	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
-bool is_zero_approx(const Vector<n, F> &value, const F epsilon = 0.001) {
+bool is_zero_approx(const Vector<n, F> &value, const FE epsilon = 0.001) {
 	for (size_t i = 0; i < n; i++) { if (std::abs(value[i]) >= epsilon) return false; }
 	return true;
 }
 
-template <typename F,
+template <typename F, typename FE = F,
 	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
-bool is_zero_approx(const F &value, const F epsilon = 0.001) { return std::abs(value) < epsilon; }
+bool is_zero_approx(const F &value, const FE epsilon = 0.001) { return std::abs(value) < epsilon; }
 
-template <unsigned int n, typename F,
+template <unsigned int n, typename F, typename FE = F,
 	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
-bool equals_approx(const Vector<n, F> &lhs, const Vector<n, F> &rhs, const F epsilon = 0.001) {
+bool equals_approx(const Vector<n, F> &lhs, const Vector<n, F> &rhs, const FE epsilon = 0.001) {
 	for (size_t i = 0; i < n; i++) { if (std::abs(lhs[i] - rhs[i]) >= epsilon) return false; }
 	return true;
 }
 
-template <typename F,
+template <typename F, typename FE = F,
 	std::enable_if_t<std::is_floating_point<F>::value, bool> = true>
-bool equals_approx(const F &lhs, const F &rhs, const F epsilon = 0.001) {
+bool equals_approx(const F &lhs, const F &rhs, const FE epsilon = 0.001) {
 	return std::abs(rhs - lhs) < epsilon;
 }
 

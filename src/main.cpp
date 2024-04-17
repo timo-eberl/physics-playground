@@ -249,42 +249,6 @@ ProgramState initialize(GLFWwindow* window) {
 	physics_world.add_object(area_trigger.area);
 	scene.add(area_trigger.mesh_node);
 
-	const auto fasdk = gm::Vector<10000>();
-	for (size_t i = 0; i < 10000; i++) {
-		assert(fasdk[i] == 0.0f);
-	}
-
-	const gm::Vector3 fjasdlj = gm::Vector3( 1, 2, 3 );
-	const auto fdsgdsaf = gm::Vector<1, unsigned int>(1.3);
-	std::cout << "fdsgdsaf: " << fdsgdsaf << std::endl;
-	const auto gdasf = gm::Vector2(1,2);
-	const auto fasdgdasf = gm::Vector3(1,2,3);
-	const auto fasdfas = gm::Vector4(1,2,3,4);
-	std::cout << "fasdgdasf: " << fasdgdasf << std::endl;
-	std::cout << "fasdgdasf.xy: " << fasdgdasf.xy << std::endl;
-	std::cout << "fasdgdasf.x: " << fasdgdasf.x << std::endl;
-	std::cout << "fasdgdasf.y: " << fasdgdasf.y << std::endl;
-	std::cout << fasdgdasf[0] << "," << fasdgdasf[1] << "," << fasdgdasf[2] << std::endl;
-	std::cout << "xyz: " << fasdgdasf.x << "," << fasdgdasf.y << "," << fasdgdasf.z << std::endl;
-
-	auto fdas = gm::Vector<5>(1,2,3,4,5);
-	assert(fdas[0] == 1.0f && fdas[1] == 2.0f && fdas[2] == 3.0f && fdas[3] == 4.0f && fdas[4] == 5.0f);
-	auto gfds = gm::Vector<5>({ 1.0f, 2.0f, 3.0f, 4.0f, 5.0f });
-	assert(gfds == fdas);
-	auto gfhdshfsd = gm::Vector<5>(435,2,3,4,5);
-	assert(gfhdshfsd != fdas);
-	std::cout << "gfhdshfsd: " << gfhdshfsd << std::endl;
-
-	auto mat2 = gm::Matrix<2,2>();
-	mat2.data[0][0] = 0;
-	mat2.data[0][1] = 1;
-	mat2.data[0][2] = 3;
-	mat2.data[0][3] = 4;
-	std::cout << "mat2: " << mat2.data[0][0] << "," << mat2.data[0][1] << ","
-		<< mat2.data[1][0] << "," << mat2.data[1][1] << std::endl;
-	std::cout << "mat2: " << mat2.contiguous_data[0] << "," << mat2.contiguous_data[1] << ","
-		<< mat2.contiguous_data[2] << "," << mat2.contiguous_data[3] << std::endl;
-
 	GroundPlane ground_plane {
 		std::make_shared<tics::StaticBody>(),
 		std::make_shared<tics::Transform>(),
