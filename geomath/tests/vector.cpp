@@ -8,6 +8,9 @@ gm::Vector3 generate_random_vec3() {
 	);
 }
 
+struct CustomType { char c; };
+bool operator==(const CustomType &lhs, const CustomType &rhs) { return lhs.c == rhs.c; }
+
 int main() {
 	const auto v0_0 = gm::Vector<5>(1,2,3,4,5);
 	assert(v0_0[0] == 1.0f && v0_0[1] == 2.0f && v0_0[2] == 3.0f && v0_0[3] == 4.0f && v0_0[4] == 5.0f);
@@ -207,4 +210,8 @@ int main() {
 	assert( gm::cross(gm::Vector3(1,0,0), gm::Vector3(0,1,0)) == gm::Vector3(0,0,1) );
 	assert( gm::cross(gm::Vector3(2,0,0), gm::Vector3(0,3,0)) == gm::Vector3(0,0,6) );
 	assert( gm::cross(gm::Vector3(1,2,3), gm::Vector3(3,4,5)) == gm::Vector3(-2,4,-2) );
+
+	// .xy access for all data types
+	assert( ( gm::Vector<3, int>(3,4,5).xy == gm::Vector<2, int>(3,4) ) );
+	assert( ( gm::Vector<4, CustomType>().xyz == gm::Vector<3, CustomType>() ) );
 }

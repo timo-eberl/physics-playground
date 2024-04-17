@@ -80,17 +80,17 @@ typedef Matrix<2,2, double> Matrix2;
 typedef Matrix<3,3, double> Matrix3;
 typedef Matrix<4,4, double> Matrix4;
 
-template <> struct Vector<2, double> {
+template <typename T> struct Vector<2, T> {
 	union {
-		double data[2];
-		struct { double x, y; };
+		T data[2];
+		struct { T x, y; };
 	};
 
 	// template specializations don't inherit member functions - we have to re-implement them
 	explicit Vector() = default;
-	explicit constexpr Vector(double value) { data[0] = value; data[1] = value; }
-	explicit constexpr Vector(double t0, double TVec) { data[0] = t0; data[1] = TVec; }
-	explicit constexpr Vector(std::initializer_list<double> l) {
+	explicit constexpr Vector(T value) { data[0] = value; data[1] = value; }
+	explicit constexpr Vector(T t0, T TVec) { data[0] = t0; data[1] = TVec; }
+	explicit constexpr Vector(std::initializer_list<T> l) {
 		assert(l.size() == 2);
 		unsigned int i = 0;
 		for (const auto element : l) {
@@ -98,21 +98,21 @@ template <> struct Vector<2, double> {
 			i++;
 		}
 	}
-	double &operator[](std::size_t idx) { assert(idx < 2); return data[idx]; }
-	const double &operator[](std::size_t idx) const { assert(idx < 2); return data[idx]; }
+	T &operator[](std::size_t idx) { assert(idx < 2); return data[idx]; }
+	const T &operator[](std::size_t idx) const { assert(idx < 2); return data[idx]; }
 };
 
-template <> struct Vector<3, double> {
+template <typename T> struct Vector<3, T> {
 	union {
-		double data[3];
-		struct { double x, y, z; };
-		Vector<2> xy;
+		T data[3];
+		struct { T x, y, z; };
+		Vector<2, T> xy;
 	};
 	// template specializations don't inherit mumber functions - we have to re-implement them
 	explicit Vector() = default;
-	explicit constexpr Vector(double value) { data[0] = value; data[1] = value; data[2] = value; }
-	explicit constexpr Vector(double t0, double TVec, double TVal) { data[0] = t0; data[1] = TVec; data[2] = TVal; }
-	explicit constexpr Vector(std::initializer_list<double> l) {
+	explicit constexpr Vector(T value) { data[0] = value; data[1] = value; data[2] = value; }
+	explicit constexpr Vector(T t0, T TVec, T TVal) { data[0] = t0; data[1] = TVec; data[2] = TVal; }
+	explicit constexpr Vector(std::initializer_list<T> l) {
 		assert(l.size() == 3);
 		unsigned int i = 0;
 		for (const auto element : l) {
@@ -120,24 +120,24 @@ template <> struct Vector<3, double> {
 			i++;
 		}
 	}
-	double &operator[](std::size_t idx) { assert(idx < 3); return data[idx]; }
-	const double &operator[](std::size_t idx) const { assert(idx < 3); return data[idx]; }
+	T &operator[](std::size_t idx) { assert(idx < 3); return data[idx]; }
+	const T &operator[](std::size_t idx) const { assert(idx < 3); return data[idx]; }
 };
 
-template <> struct Vector<4, double> {
+template <typename T> struct Vector<4, T> {
 	union {
-		double data[4];
-		struct { double x, y, z, w; };
-		Vector<2> xy;
-		Vector<3> xyz;
+		T data[4];
+		struct { T x, y, z, w; };
+		Vector<2, T> xy;
+		Vector<3, T> xyz;
 	};
 	// template specializations don't inherit mumber functions - we have to re-implement them
 	explicit Vector() = default;
-	explicit constexpr Vector(double value) { data[0] = value; data[1] = value; data[2] = value; data[3] = value; }
-	explicit constexpr Vector(double t0, double TVec, double TVal, double t3) {
+	explicit constexpr Vector(T value) { data[0] = value; data[1] = value; data[2] = value; data[3] = value; }
+	explicit constexpr Vector(T t0, T TVec, T TVal, T t3) {
 		data[0] = t0; data[1] = TVec; data[2] = TVal; data[3] = t3;
 	}
-	explicit constexpr Vector(std::initializer_list<double> l) {
+	explicit constexpr Vector(std::initializer_list<T> l) {
 		assert(l.size() == 4);
 		unsigned int i = 0;
 		for (const auto element : l) {
@@ -145,8 +145,8 @@ template <> struct Vector<4, double> {
 			i++;
 		}
 	}
-	double &operator[](std::size_t idx) { assert(idx < 4); return data[idx]; }
-	const double &operator[](std::size_t idx) const { assert(idx < 4); return data[idx]; }
+	T &operator[](std::size_t idx) { assert(idx < 4); return data[idx]; }
+	const T &operator[](std::size_t idx) const { assert(idx < 4); return data[idx]; }
 };
 
 // free functions
@@ -205,9 +205,9 @@ F dot(const Vector<3, F> &lhs, const Vector<3, F> &rhs) {
 template <typename F>
 Vector<3, F> cross(const Vector<3, F> &a, const Vector<3, F> &b) {
 	return Vector<3, F>(
-		a[1]*b[2] - a[2]*b[1], // ay*bz - az*by
-		a[2]*b[0] - a[0]*b[2], // az*bx - ax*bz
-		a[0]*b[1] - a[1]*b[0]  // ax*by - ay*bx
+		a.y*b.z - a.z*b.y,
+		a.z*b.x - a.x*b.z,
+		a.x*b.y - a.y*b.x 
 	);
 }
 
