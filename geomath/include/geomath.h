@@ -13,7 +13,6 @@ namespace gm {
 // todo matrices constructors
 // todo matrix comparison
 // todo matrix <<
-// todo vector constructors like this: vec4(vec2, 0.0, 0.0)
 
 struct Quaternion {
 	double i;
@@ -22,19 +21,17 @@ struct Quaternion {
 	double w;
 };
 
-template <unsigned int n, typename T = double>
+template <unsigned int n, typename T = double, std::enable_if_t<(n > 0), bool> = true>
 struct Vector {
-	static_assert(n > 0, "n must be greater than 0");
-
 	T data[n];
 
 	explicit Vector() = default;
 
 	explicit constexpr Vector(T value) { for (size_t i = 0; i < n; i++) { data[i] = value; } }
 
-	template <typename ... Ts>
+	template <typename ... Ts,
+		std::enable_if_t<std::conjunction<std::is_convertible<T,Ts>...>::value, bool> = true>
 	explicit constexpr Vector(Ts ... vals) {
-		static_assert(std::conjunction<std::is_convertible<T,Ts>...>::value, "incompatible type");
 		static_assert(sizeof...(vals) == n || sizeof...(vals) == 1, "incorrect number of arguments");
 
 		if (sizeof...(vals) == 1) { // fill whole array with a single value
@@ -51,6 +48,10 @@ struct Vector {
 		}
 	}
 
+	template <typename T2,
+		std::enable_if_t<std::is_convertible<T,T2>::value, bool> = true>
+	explicit constexpr Vector(const Vector<n,T2> &vec) { for (size_t i = 0; i < n; i++) { data[i] = vec[i]; } }
+
 	explicit constexpr Vector(std::initializer_list<T> l) {
 		assert(l.size() == n);
 		unsigned int i = 0;
@@ -60,9 +61,9 @@ struct Vector {
 		}
 	}
 
-	template <unsigned int nv, typename ... Ts>
+	template <unsigned int nv, typename ... Ts,
+		std::enable_if_t<std::conjunction<std::is_convertible<T,Ts>...>::value, bool> = true> // is type compatible?
 	explicit constexpr Vector(const Vector<nv, T> &vector, Ts ... vals) {
-		static_assert(std::conjunction<std::is_convertible<T,Ts>...>::value, "incompatible type");
 		static_assert(sizeof...(vals) + nv == n, "incorrect number of arguments");
 
 		unsigned int i = 0;
@@ -91,9 +92,14 @@ struct Matrix {
 typedef Vector<2, double> Vector2;
 typedef Vector<3, double> Vector3;
 typedef Vector<4, double> Vector4;
+typedef Vector<2, int> IntVector2;
+typedef Vector<3, int> IntVector3;
+typedef Vector<4, int> IntVector4;
 typedef Matrix<2,2, double> Matrix2;
 typedef Matrix<3,3, double> Matrix3;
 typedef Matrix<4,4, double> Matrix4;
+
+// vector specializations for 2D, 3D, 4D to enable member access like this: vec.x vec.y vec.z vec.xy
 
 template <typename T> struct Vector<2, T> {
 	union {
@@ -105,6 +111,8 @@ template <typename T> struct Vector<2, T> {
 	explicit Vector() = default;
 	explicit constexpr Vector(T value) { data[0] = value; data[1] = value; }
 	explicit constexpr Vector(T t0, T t1) { data[0] = t0; data[1] = t1; }
+	template <typename T2, std::enable_if_t<std::is_convertible<T,T2>::value, bool> = true>
+	explicit constexpr Vector(const Vector<2,T2> &vec) { for (size_t i = 0; i < 2; i++) { data[i] = vec[i]; } }
 	explicit constexpr Vector(std::initializer_list<T> l) {
 		assert(l.size() == 2);
 		unsigned int i = 0;
@@ -128,6 +136,8 @@ template <typename T> struct Vector<3, T> {
 	explicit Vector() = default;
 	explicit constexpr Vector(T value) { data[0] = value; data[1] = value; data[2] = value; }
 	explicit constexpr Vector(T t0, T t1, T t2) { data[0] = t0; data[1] = t1; data[2] = t2; }
+	template <typename T2, std::enable_if_t<std::is_convertible<T,T2>::value, bool> = true>
+	explicit constexpr Vector(const Vector<3,T2> &vec) { for (size_t i = 0; i < 3; i++) { data[i] = vec[i]; } }
 	explicit constexpr Vector(std::initializer_list<T> l) {
 		assert(l.size() == 3);
 		unsigned int i = 0;
@@ -152,9 +162,9 @@ template <typename T> struct Vector<4, T> {
 	// template specializations don't inherit mumber functions - we have to re-implement them
 	explicit Vector() = default;
 	explicit constexpr Vector(T value) { data[0] = value; data[1] = value; data[2] = value; data[3] = value; }
-	explicit constexpr Vector(T t0, T t1, T t2, T t3) {
-		data[0] = t0; data[1] = t1; data[2] = t2; data[3] = t3;
-	}
+	explicit constexpr Vector(T t0, T t1, T t2, T t3) { data[0] = t0; data[1] = t1; data[2] = t2; data[3] = t3; }
+	template <typename T2, std::enable_if_t<std::is_convertible<T,T2>::value, bool> = true>
+	explicit constexpr Vector(const Vector<4,T2> &vec) { for (size_t i = 0; i < 4; i++) { data[i] = vec[i]; } }
 	explicit constexpr Vector(std::initializer_list<T> l) {
 		assert(l.size() == 4);
 		unsigned int i = 0;

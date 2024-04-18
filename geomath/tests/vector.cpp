@@ -31,6 +31,16 @@ int main() {
 	assert( gm::Vector4(1,2,3,4) == gm::Vector4(gm::Vector<2>(1,2),3,4) );
 	assert( gm::Vector4(1,2,3,4) == gm::Vector4(gm::Vector<3>(1,2,3),4) );
 
+	assert((
+		gm::Vector<5,double>(1,2,3,4,5)
+		== gm::Vector<5,double>(gm::Vector<5,int>(1,2,3,4,5))
+	));
+
+	// constructor that takes same size vector with different (convertible) data type
+	assert(( gm::Vector2(1,2) == gm::Vector2(gm::IntVector3(1,2,3).xy) ));
+	assert(( gm::Vector3(1,2,3) == gm::Vector3(gm::IntVector3(1,2,3)) ));
+	assert(( gm::Vector4(1,2,3,4) == gm::Vector4(gm::IntVector4(1,2,3,4)) ));
+
 	const auto v1_0 = gm::Vector<5>(3,4,5,6,7);
 	assert(v0_0 != v1_0);
 	auto v1_1 = gm::Vector<5>();
