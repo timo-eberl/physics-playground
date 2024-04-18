@@ -233,4 +233,10 @@ int main() {
 	// .xy access for all data types
 	assert( ( gm::Vector<3, int>(3,4,5).xy == gm::Vector<2, int>(3,4) ) );
 	assert( ( gm::Vector<4, CustomType>().xyz == gm::Vector<3, CustomType>() ) );
+
+	// string conversion
+	assert( gm::to_string(gm::IntVector3(1,2,3)) == std::string("{ 1, 2, 3 }") );
+	std::stringstream stream;
+	stream << gm::IntVector3(1,2,3);
+	assert(stream.str() == std::string("{ 1, 2, 3 }"));
 }

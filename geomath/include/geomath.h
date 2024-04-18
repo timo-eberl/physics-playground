@@ -5,14 +5,18 @@
 #include <initializer_list>
 #include <algorithm>
 #include <unordered_set>
+#include <sstream>
 #include <ostream>
 #include <cmath>
 
 namespace gm {
 
-// todo matrices constructors
-// todo matrix comparison
-// todo matrix <<
+// todo matrix constructors
+// todo matrix operators: == , << , mat * mat , mat * vec , vec * mat (?)
+// todo matrix functions: transpose, inverse, equals_approx
+// todo matrix 3d stuff: mat_frustum(left, right,...), mat_look_at, mat_ortho, mat_perspective
+// todo matrix transformations: scale, translate, rotate_[x,y,z], rotate_axis
+// todo matrix optimized transform constructors (?): mat_from_scaling, mat_from_translation, mat_from_rotation_[x,y,z]
 
 struct Quaternion {
 	double i;
@@ -189,15 +193,19 @@ bool operator==(const Vector<n, T> &lhs, const Vector<n, T> &rhs) {
 }
 
 template <unsigned int n, typename T>
-std::ostream &operator<<(std::ostream &os, const Vector<n, T> &value) {
-	os << "{ ";
+std::string to_string(const Vector<n, T> &value) {
+	std::stringstream stream;
+	stream << "{ ";
 	for (size_t i = 0; i < n; i++) {
-		os << value[i];
-		if (i < n-1) { os << ", "; }
+		stream << value[i];
+		if (i < n-1) { stream << ", "; }
 	}
-	os << " }";
-	return os;
+	stream << " }";
+	return stream.str();
 }
+
+template <unsigned int n, typename T>
+std::ostream &operator<<(std::ostream &os, const Vector<n, T> &value) { os << to_string(value); return os; }
 
 // mathematical operations
 
