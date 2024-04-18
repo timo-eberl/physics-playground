@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <cassert>
 #include <initializer_list>
 #include <algorithm>

@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.5)
 project(geomath)
 set (CMAKE_CXX_STANDARD 20) # Require C++20
 
+# Generate compile_commands.json to make C++ syntax checkers happy
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # This Project
 add_library(${PROJECT_NAME} include/geomath.h)
 # there is no .cpp file in this project, so we have to tell the linker we are using C++

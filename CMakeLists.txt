@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.11) # FetchContent is available in 3.11+
 project(physics-playground)
 set (CMAKE_CXX_STANDARD 20) # Require C++20
 
+# Generate compile_commands.json to make C++ syntax checkers happy
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # dependencies
 	# tics (own physics library)
 	add_subdirectory (tics)
