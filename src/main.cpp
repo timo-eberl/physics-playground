@@ -5,6 +5,7 @@
 
 #include <tics.h>
 #include <ron.h>
+#include <glm/gtx/string_cast.hpp>
 
 #include "game_loop.h"
 
@@ -35,10 +36,16 @@ struct AreaTrigger {
 	std::shared_ptr<ron::MeshNode> mesh_node;
 };
 
+struct RaycastTarget {
+	const std::shared_ptr<tics::MeshCollider> collider;
+	std::shared_ptr<ron::MeshNode> mesh_node;
+};
+
 struct ProgramState {
 	std::vector<Sphere> spheres;
 	GroundPlane ground_plane;
 	AreaTrigger area_trigger;
+	RaycastTarget raycast_target;
 
 	ron::PerspectiveCamera camera;
 	ron::CameraViewportControls camera_controls;
@@ -243,11 +250,23 @@ ProgramState initialize(GLFWwindow* window) {
 	area_trigger.area->on_collision_enter = [](const auto &other) { std::cout << "enter\n"; };
 	area_trigger.area->on_collision_exit = [](const auto &other) { std::cout << "exit\n"; };
 	area_trigger.collider->radius = 1.0;
-	area_trigger.transform->position = gm::Vector3(0.0, 2.0, 0.0);
+	area_trigger.transform->position = gm::Vector3(-4.0, 2.0, 0.0);
 	area_trigger.transform->scale = gm::Vector3(1.0, 1.0, 1.0);
 	area_trigger.mesh_node->set_model_matrix(transform_to_model_matrix(*area_trigger.transform));
 	physics_world.add_object(area_trigger.area);
 	scene.add(area_trigger.mesh_node);
+
+	RaycastTarget raycast_target = {
+		std::make_shared<tics::MeshCollider>(),
+		ron::gltf::import("models/suzanne.glb").get_mesh_nodes().front()
+	};
+	const auto raycast_target_geometry = raycast_target.mesh_node->get_mesh()->sections.front().geometry;
+	// copy positions and inidices to MeshCollider
+	raycast_target.collider->indices = raycast_target_geometry->indices;
+	for (const auto &vertex_pos : raycast_target_geometry->positions) {
+		raycast_target.collider->positions.push_back(gm::Vector3(vertex_pos.x, vertex_pos.y, vertex_pos.z));
+	}
+	scene.add(raycast_target.mesh_node);
 
 	GroundPlane ground_plane {
 		std::make_shared<tics::StaticBody>(),
@@ -275,6 +294,7 @@ ProgramState initialize(GLFWwindow* window) {
 		spheres,
 		ground_plane,
 		area_trigger,
+		raycast_target,
 		ron::PerspectiveCamera(60.0f, 1280.0f/720.0f, 0.1f, 1000.0f),
 		camera_controls,
 		scene,
@@ -340,6 +360,16 @@ void process(GLFWwindow* window, ProgramState& state) {
 
 void render(GLFWwindow* window, ProgramState& state) {
 	auto start_time_point = std::chrono::high_resolution_clock::now();
+
+	const auto cam_model_matrix = state.camera.get_model_matrix();
+	const auto cam_pos_glm = cam_model_matrix * glm::vec4(0,0,0,1);
+	const auto cam_pos = gm::Vector3(cam_pos_glm.x, cam_pos_glm.y, cam_pos_glm.z);
+	const auto target_pos_glm = cam_model_matrix * glm::vec4(0,0,-1,1);
+	const auto direction_glm = target_pos_glm - cam_pos_glm;
+	const auto direction = gm::Vector3(direction_glm.x, direction_glm.y, direction_glm.z);
+
+	const bool raycast_hit = tics::raycast(*state.raycast_target.collider, cam_pos, direction);
+	std::cout << "raycast_hit: " << raycast_hit << "\n";
 
 	state.renderer->render(state.render_scene, state.camera);
 

@@ -18,6 +18,7 @@ struct Transform {
 enum ColliderType {
 	SPHERE,
 	PLANE,
+	MESH,
 };
 
 struct Collider {
@@ -35,6 +36,14 @@ struct PlaneCollider : Collider {
 	gm::Vector3 normal = gm::Vector3(0, 1, 0);
 	float distance = 0.0f;
 };
+
+struct MeshCollider : Collider {
+	MeshCollider() { type = MESH; };
+	std::vector<gm::Vector3> positions = {};
+	std::vector<uint32_t> indices = {};
+};
+
+bool raycast(const MeshCollider &mesh_collider, const gm::Vector3 ray_start, const gm::Vector3 ray_end);
 
 struct CollisionPoints {
 	gm::Vector3 a; // furthest point of a into b
