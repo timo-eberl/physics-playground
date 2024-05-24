@@ -368,7 +368,7 @@ void render(GLFWwindow* window, ProgramState& state) {
 	const auto direction_glm = target_pos_glm - cam_pos_glm;
 	const auto direction = gm::Vector3(direction_glm.x, direction_glm.y, direction_glm.z);
 
-	const bool raycast_hit = tics::raycast(*state.raycast_target.collider, cam_pos, direction);
+	const bool raycast_hit = tics::pga_raycast(*state.raycast_target.collider, cam_pos, direction);
 	std::cout << "raycast_hit: " << raycast_hit << "\n";
 
 	state.renderer->render(state.render_scene, state.camera);

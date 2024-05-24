@@ -43,6 +43,8 @@ struct MeshCollider : Collider {
 	std::vector<uint32_t> indices = {};
 };
 
+bool pga_raycast(const MeshCollider &mesh_collider, const gm::Vector3 ray_start, const gm::Vector3 ray_end);
+
 bool raycast(const MeshCollider &mesh_collider, const gm::Vector3 ray_start, const gm::Vector3 ray_end);
 
 struct CollisionPoints {
