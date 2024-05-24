@@ -3,5 +3,5 @@
 	url = https://github.com/timo-eberl/ron-the-renderer
 	branch = main
 [submodule "Terathon-Math-Library"]
-	path = Terathon-Math-Library
+	path = terathonmath/Terathon-Math-Library
 	url = https://github.com/EricLengyel/Terathon-Math-Library.git

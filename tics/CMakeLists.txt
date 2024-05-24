@@ -7,7 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Dependencies
 add_subdirectory (${CMAKE_CURRENT_SOURCE_DIR}/../geomath ${CMAKE_CURRENT_BINARY_DIR}/geomath)
-add_subdirectory (${CMAKE_CURRENT_SOURCE_DIR}/../Terathon-Math-Library ${CMAKE_CURRENT_BINARY_DIR}/Terathon-Math-Library)
+add_subdirectory (${CMAKE_CURRENT_SOURCE_DIR}/../terathonmath ${CMAKE_CURRENT_BINARY_DIR}/terathonmath)
 
 # Our Project
 set(SOURCES
