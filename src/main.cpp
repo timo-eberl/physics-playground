@@ -6,6 +6,12 @@
 #include <tics.h>
 #include <ron.h>
 #include <glm/gtx/string_cast.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <TSVector3D.h>
+#include <TSMatrix3D.h>
+#include <TSMatrix4D.h>
+#include <TSMotor3D.h>
 
 #include "game_loop.h"
 
@@ -316,6 +322,75 @@ void process(GLFWwindow* window, ProgramState& state) {
 
 	auto start_time_point = std::chrono::high_resolution_clock::now();
 
+	static std::vector<std::chrono::nanoseconds> raycast_times;
+	const auto pga = false;
+
+	const auto glm_model_mat = state.raycast_target.mesh_node->get_model_matrix();
+	const auto model_mat = Terathon::Transform3D(
+		glm_model_mat[0][0], glm_model_mat[1][0], glm_model_mat[2][0], glm_model_mat[3][0],
+		glm_model_mat[0][1], glm_model_mat[1][1], glm_model_mat[2][1], glm_model_mat[3][1],
+		glm_model_mat[0][2], glm_model_mat[1][2], glm_model_mat[2][2], glm_model_mat[3][2]
+	);
+	const auto glm_rev_model_mat = glm::inverse(glm_model_mat);
+	const auto rev_model_mat = Terathon::Transform3D(
+		glm_rev_model_mat[0][0], glm_rev_model_mat[1][0], glm_rev_model_mat[2][0], glm_rev_model_mat[3][0],
+		glm_rev_model_mat[0][1], glm_rev_model_mat[1][1], glm_rev_model_mat[2][1], glm_rev_model_mat[3][1],
+		glm_rev_model_mat[0][2], glm_rev_model_mat[1][2], glm_rev_model_mat[2][2], glm_rev_model_mat[3][2]
+	);
+	auto model_motor = Terathon::Motor3D();
+	model_motor.SetTransformMatrix(model_mat);
+	auto rev_model_motor = Terathon::Motor3D();
+	rev_model_motor.SetTransformMatrix(rev_model_mat);
+
+	if (pga) {
+		// without transform:
+		// suzanne.glb: ~ 0.50 ms
+		// suzanne_high_res.glb: : ~ 90 ms
+
+		// with transform:
+		// suzanne.glb: ~ 1.21 ms (+0.71 ms)
+		// suzanne_high_res.glb: : ~ 274 ms (+184 ms)
+		const auto cam_model_matrix = state.camera.get_model_matrix();
+		const auto cam_pos_glm = cam_model_matrix * glm::vec4(0,0,0,1);
+		const auto p_ws = Terathon::Point3D(cam_pos_glm.x, cam_pos_glm.y, cam_pos_glm.z);
+		const auto cam_target = state.camera_controls.get_target();
+		const auto q_ws = Terathon::Point3D(
+			cam_target.x, cam_target.y, cam_target.z
+		);
+		const auto p = Terathon::Transform(Terathon::Point3D(cam_pos_glm.x, cam_pos_glm.y, cam_pos_glm.z), rev_model_motor);
+		const auto q = Terathon::Transform(Terathon::Point3D(
+			cam_target.x, cam_target.y, cam_target.z
+		), rev_model_motor);
+		const bool pga_raycast_hit = tics::pga_raycast(model_motor, *state.raycast_target.collider, p_ws, q_ws);
+		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - start_time_point;
+		raycast_times.push_back(ray_cast_time);
+	} else {
+		// without transform:
+		// suzanne.glb: ~ 0.33 ms
+		// suzanne_high_res.glb: ~ 53 ms
+
+		// with transform:
+		// suzanne.glb: ~ 0.75 ms (+0.42 ms)
+		// suzanne_high_res.glb: : ~ 140 ms (+87 ms)
+		const auto cam_model_matrix = state.camera.get_model_matrix();
+		const auto cam_pos_glm = cam_model_matrix * glm::vec4(0,0,0,1);
+		const auto cam_pos_ws = Terathon::Point3D(cam_pos_glm.x, cam_pos_glm.y, cam_pos_glm.z);
+		const auto cam_pos = rev_model_mat * cam_pos_ws;
+		const auto target_pos_glm = cam_model_matrix * glm::vec4(0,0,-1,1);
+		const auto direction_glm = target_pos_glm - cam_pos_glm;
+		const auto direction_ws = Terathon::Vector3D(direction_glm.x, direction_glm.y, direction_glm.z);
+		const auto direction = rev_model_mat * direction_ws;
+
+		const bool raycast_hit = tics::raycast(model_mat, *state.raycast_target.collider, cam_pos_ws, direction_ws);
+		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - start_time_point;
+		raycast_times.push_back(ray_cast_time);
+	}
+	std::chrono::nanoseconds total = 0ns;
+	for (const auto &t : raycast_times) {
+		total += t;
+	}
+	// std::cout << "avg time: " << total / raycast_times.size() << "\n";
+
 	// create spheres with random size and color
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT == GLFW_PRESS)) {
 		const float size = 0.5 + 0.5 * static_cast<double>(std::rand()) / RAND_MAX;
@@ -360,16 +435,6 @@ void process(GLFWwindow* window, ProgramState& state) {
 
 void render(GLFWwindow* window, ProgramState& state) {
 	auto start_time_point = std::chrono::high_resolution_clock::now();
-
-	const auto cam_model_matrix = state.camera.get_model_matrix();
-	const auto cam_pos_glm = cam_model_matrix * glm::vec4(0,0,0,1);
-	const auto cam_pos = gm::Vector3(cam_pos_glm.x, cam_pos_glm.y, cam_pos_glm.z);
-	const auto target_pos_glm = cam_model_matrix * glm::vec4(0,0,-1,1);
-	const auto direction_glm = target_pos_glm - cam_pos_glm;
-	const auto direction = gm::Vector3(direction_glm.x, direction_glm.y, direction_glm.z);
-
-	const bool raycast_hit = tics::pga_raycast(*state.raycast_target.collider, cam_pos, direction);
-	std::cout << "raycast_hit: " << raycast_hit << "\n";
 
 	state.renderer->render(state.render_scene, state.camera);
 

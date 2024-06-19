@@ -6,8 +6,11 @@
 #include <TSVector4D.h>
 #include <TSVector3D.h>
 #include <TSBivector3D.h>
+#include <TSMatrix3D.h>
+#include <TSMatrix4D.h>
+#include <TSMotor3D.h>
 
-bool tics::pga_raycast(const MeshCollider &mesh_collider, const gm::Vector3 ray_start, const gm::Vector3 direction) {
+bool tics::pga_raycast(const Terathon::Motor3D &model_motor, const MeshCollider &mesh_collider, const Terathon::Point3D p, const Terathon::Point3D q) {
 	for (size_t triangle_index = 0; triangle_index < mesh_collider.indices.size() / 3; triangle_index++) {
 		const uint32_t indices [3] = {
 			mesh_collider.indices.at(triangle_index * 3 + 0),
@@ -20,13 +23,9 @@ bool tics::pga_raycast(const MeshCollider &mesh_collider, const gm::Vector3 ray_
 			mesh_collider.positions.at(indices[2]),
 		};
 
-		auto a = Terathon::Point3D(vertices[0].x, vertices[0].y, vertices[0].z);
-		auto b = Terathon::Point3D(vertices[1].x, vertices[1].y, vertices[1].z);
-		auto c = Terathon::Point3D(vertices[2].x, vertices[2].y, vertices[2].z);
-
-		// two points on the line
-		const auto p = Terathon::Point3D(ray_start.x, ray_start.y, ray_start.z);
-		const auto q = Terathon::Point3D(ray_start.x + direction.x, ray_start.y + direction.y, ray_start.z + direction.z);
+		auto a = Terathon::Transform( Terathon::Point3D(vertices[0].x, vertices[0].y, vertices[0].z), model_motor );
+		auto b = Terathon::Transform( Terathon::Point3D(vertices[1].x, vertices[1].y, vertices[1].z), model_motor );
+		auto c = Terathon::Transform( Terathon::Point3D(vertices[2].x, vertices[2].y, vertices[2].z), model_motor );
 
 		auto l = Terathon::Wedge(p, q);
 
@@ -51,7 +50,7 @@ bool tics::pga_raycast(const MeshCollider &mesh_collider, const gm::Vector3 ray_
 			Terathon::Antiwedge(l, k_1) < 0 ||
 			Terathon::Antiwedge(l, k_2) < 0 ||
 			Terathon::Antiwedge(l, k_3) < 0;
-		
+
 		// Otherwise, we have a hit.
 		if (!any_negative) {
 			return true;
@@ -61,7 +60,7 @@ bool tics::pga_raycast(const MeshCollider &mesh_collider, const gm::Vector3 ray_
 	return false;
 }
 
-bool tics::raycast(const MeshCollider &mesh_collider, const gm::Vector3 ray_start, const gm::Vector3 direction) {
+bool tics::raycast(const Terathon::Transform3D &model_mat, const MeshCollider &mesh_collider, const Terathon::Vector3D ray_start, const Terathon::Vector3D direction) {
 	for (size_t triangle_index = 0; triangle_index < mesh_collider.indices.size() / 3; triangle_index++) {
 		const uint32_t indices [3] = {
 			mesh_collider.indices.at(triangle_index * 3 + 0),
@@ -74,30 +73,32 @@ bool tics::raycast(const MeshCollider &mesh_collider, const gm::Vector3 ray_star
 			mesh_collider.positions.at(indices[2]),
 		};
 
+		auto a = model_mat * Terathon::Point3D(vertices[0].x, vertices[0].y, vertices[0].z);
+		auto b = model_mat * Terathon::Point3D(vertices[1].x, vertices[1].y, vertices[1].z);
+		auto c = model_mat * Terathon::Point3D(vertices[2].x, vertices[2].y, vertices[2].z);
+
 		// Let l be a line containing the point ray_start and running parallel to the direction vector direction
 
 		// Translate the line so that ray_start coincides with the origin.
 		// Translate the triangle by subtracting ray_start from the vertices
 
-		for (size_t i = 0; i < 3; i++) {
-			vertices[i] -= ray_start;
-		}
+		a -= ray_start;
+		b -= ray_start;
+		c -= ray_start;
 
 		// Calculate the scalar triple products (a x b) dot direction, (b x c) dot direction, (c x a) dot direction
 		// If any of these products is positive, then the line does not intersect the triangle.
 
-		const auto scalar_triple_product_ab = gm::dot( gm::cross(vertices[0], vertices[1]), direction );
-		const auto scalar_triple_product_bc = gm::dot( gm::cross(vertices[1], vertices[2]), direction );
-		const auto scalar_triple_product_ca = gm::dot( gm::cross(vertices[2], vertices[0]), direction );
+		const auto scalar_triple_product_ab = Terathon::Dot( Terathon::Cross(a, b), direction );
+		const auto scalar_triple_product_bc = Terathon::Dot( Terathon::Cross(b, c), direction );
+		const auto scalar_triple_product_ca = Terathon::Dot( Terathon::Cross(c, a), direction );
 
-		const bool intersecting = !
-			(  scalar_triple_product_ab > 0
-			|| scalar_triple_product_bc > 0
-			|| scalar_triple_product_ca > 0 );
+		const auto any_positive =
+			scalar_triple_product_ab > 0 ||
+			scalar_triple_product_bc > 0 ||
+			scalar_triple_product_ca > 0;
 
-		if (intersecting) {
-			// std::cout << "Intersection at triangle " << triangle_index << " : "
-			// 	<< vertices[0] << ", " << vertices[1] << ", " << vertices[2] << "\n";
+		if (!any_positive) {
 			return true;
 		}
 	}

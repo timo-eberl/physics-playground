@@ -7,6 +7,10 @@
 #include <functional>
 
 #include <geomath.h>
+#include <TSVector3D.h>
+#include <TSMatrix3D.h>
+#include <TSMatrix4D.h>
+#include <TSMotor3D.h>
 
 namespace tics {
 
@@ -43,9 +47,9 @@ struct MeshCollider : Collider {
 	std::vector<uint32_t> indices = {};
 };
 
-bool pga_raycast(const MeshCollider &mesh_collider, const gm::Vector3 ray_start, const gm::Vector3 ray_end);
+bool pga_raycast(const Terathon::Motor3D &model_motor, const MeshCollider &mesh_collider, const Terathon::Point3D p, const Terathon::Point3D q);
 
-bool raycast(const MeshCollider &mesh_collider, const gm::Vector3 ray_start, const gm::Vector3 ray_end);
+bool raycast(const Terathon::Transform3D &model_mat, const MeshCollider &mesh_collider, const Terathon::Vector3D ray_start, const Terathon::Vector3D direction);
 
 struct CollisionPoints {
 	gm::Vector3 a; // furthest point of a into b
