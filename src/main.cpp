@@ -246,12 +246,12 @@ ProgramState initialize(GLFWwindow* window) {
 	physics_world.add_object(sphere_1.rigid_body);
 	scene.add(sphere_1.mesh_node);
 
-	auto sphere_2 = create_sphere(
-		gm::Vector3(-3.0, 1.0, 0.0), gm::Vector3(2.0, 12.0, 0.0), scene, glm::vec3(0.4, 0.3, 0.1), 1.25f, 1.25f
-	);
-	spheres->emplace_back(sphere_2);
-	physics_world.add_object(sphere_2.rigid_body);
-	scene.add(sphere_2.mesh_node);
+	// auto sphere_2 = create_sphere(
+	// 	gm::Vector3(-3.0, 1.0, 0.0), gm::Vector3(2.0, 12.0, 0.0), scene, glm::vec3(0.4, 0.3, 0.1), 1.25f, 1.25f
+	// );
+	// spheres->emplace_back(sphere_2);
+	// physics_world.add_object(sphere_2.rigid_body);
+	// scene.add(sphere_2.mesh_node);
 
 	AreaTrigger area_trigger = {
 		std::make_shared<tics::CollisionArea>(),
@@ -278,7 +278,7 @@ ProgramState initialize(GLFWwindow* window) {
 		std::cout << "exit\n";
 	};
 	area_trigger.transform->position = gm::Vector3(-2.0, 2.0, 0.0);
-	area_trigger.transform->scale = gm::Vector3(2.5, 0.5, 4.5);
+	area_trigger.transform->scale = gm::Vector3(2.0, 1.0, 4.0);
 	area_trigger.mesh_node->set_model_matrix(transform_to_model_matrix(*area_trigger.transform));
 	const auto area_trigger_geometry = area_trigger.mesh_node->get_mesh()->sections.front().geometry;
 	// copy positions and inidices to MeshCollider
@@ -299,7 +299,7 @@ ProgramState initialize(GLFWwindow* window) {
 	for (const auto &vertex_pos : raycast_target_geometry->positions) {
 		raycast_target.collider->positions.push_back(gm::Vector3(vertex_pos.x, vertex_pos.y, vertex_pos.z));
 	}
-	scene.add(raycast_target.mesh_node);
+	// scene.add(raycast_target.mesh_node);
 
 	GroundPlane ground_plane {
 		std::make_shared<tics::StaticBody>(),
@@ -446,7 +446,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 		state.render_scene.add(sphere.mesh_node);
 	}
 
-	float time_scale = 1.0f;
+	float time_scale = 0.2f;
 	state.physics_world.update(time_scale/60.0f);
 
 	const auto physics_time = std::chrono::high_resolution_clock::now() - start_time_point;

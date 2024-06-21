@@ -30,22 +30,19 @@ gm::Vector3 support_function_mesh(
 
 	const auto &collider = static_cast<const MeshCollider&>(c);
 
-	// translate d into the local space of the shape
-	const auto d_local_space = gm::normalize( d / t.scale );
-
 	// find the support point in local space
 	auto support_point_dot = 0.0;
 	auto support_point = gm::Vector3(0);
 	for (const auto &p : collider.positions) {
-		const auto p_dot_d = gm::dot(p, d_local_space);
+		const auto p_scaled = p * t.scale;
+		const auto p_dot_d = gm::dot(p_scaled, d);
 		if (p_dot_d > support_point_dot) {
 			support_point_dot = p_dot_d;
-			support_point = p;
+			support_point = p_scaled;
 		}
 	}
 
-	// translate back to world space
-	support_point = support_point * t.scale + t.position;
+	support_point = support_point + t.position;
 
 	return support_point;
 }
