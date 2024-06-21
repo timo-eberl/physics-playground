@@ -25,8 +25,9 @@ unsigned int accumulated_physics_time_count = 0;
 struct Sphere {
 	const std::shared_ptr<tics::RigidBody> rigid_body;
 	const std::shared_ptr<tics::Transform> transform;
-	const std::shared_ptr<tics::SphereCollider> collider;
+	const std::shared_ptr<tics::MeshCollider> collider;
 	std::shared_ptr<ron::MeshNode> mesh_node;
+	glm::vec3 color;
 };
 
 struct GroundPlane {
@@ -38,7 +39,7 @@ struct GroundPlane {
 struct AreaTrigger {
 	const std::shared_ptr<tics::CollisionArea> area;
 	const std::shared_ptr<tics::Transform> transform;
-	const std::shared_ptr<tics::SphereCollider> collider;
+	const std::shared_ptr<tics::MeshCollider> collider;
 	std::shared_ptr<ron::MeshNode> mesh_node;
 };
 
@@ -48,7 +49,7 @@ struct RaycastTarget {
 };
 
 struct ProgramState {
-	std::vector<Sphere> spheres;
+	std::shared_ptr<std::vector<Sphere>> spheres;
 	GroundPlane ground_plane;
 	AreaTrigger area_trigger;
 	RaycastTarget raycast_target;
@@ -88,22 +89,22 @@ static Sphere create_sphere(
 	gm::Vector3 position, gm::Vector3 velocity, const ron::Scene &scene,
 	glm::vec3 color = glm::vec3(1.0), float scale = 1.0f, float mass = 1.0f
 ) {
-	static const auto sphere_mesh = ron::gltf::import("default/models/icosphere/icosphere.glb")
+	static const auto sphere_mesh = ron::gltf::import("models/icosphere_lowres.glb")
 		.get_mesh_nodes()
 		.front();
 	Sphere sphere = Sphere({
 		std::make_shared<tics::RigidBody>(),
 		std::make_shared<tics::Transform>(),
-		std::make_shared<tics::SphereCollider>(),
+		std::make_shared<tics::MeshCollider>(),
 		std::make_shared<ron::MeshNode>(*sphere_mesh) // copy
 	});
-	sphere.collider->radius = 1.0;
 	sphere.rigid_body->set_collider(sphere.collider);
 	sphere.rigid_body->set_transform(sphere.transform);
 	sphere.rigid_body->mass = mass;
 	sphere.transform->position = position;
 	sphere.transform->scale = gm::Vector3(scale, scale, scale);
 	sphere.rigid_body->velocity = velocity;
+	sphere.color = color;
 
 	// copy the default material and modify it
 	const auto material = std::make_shared<ron::Material>(*scene.default_material);
@@ -117,6 +118,13 @@ static Sphere create_sphere(
 	cloned_mesh_node->get_mesh()->sections.front().material = material;
 
 	sphere.mesh_node = cloned_mesh_node;
+
+	const auto geometry = sphere.mesh_node->get_mesh()->sections.front().geometry;
+	// copy positions and inidices to MeshCollider
+	sphere.collider->indices = geometry->indices;
+	for (const auto &vertex_pos : geometry->positions) {
+		sphere.collider->positions.push_back(gm::Vector3(vertex_pos.x, vertex_pos.y, vertex_pos.z));
+	}
 
 	return sphere;
 }
@@ -229,36 +237,55 @@ ProgramState initialize(GLFWwindow* window) {
 	tics::World physics_world;
 	physics_world.set_gravity(gm::Vector3(0.0, -10.0, 0.0));
 
-	std::vector<Sphere> spheres {};
+	auto spheres = std::make_shared<std::vector<Sphere>>();
 
 	auto sphere_1 = create_sphere(
 		gm::Vector3(0.0, 1.5, 0.25), gm::Vector3(0.0, 8.0, 0.0), scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
 	);
-	spheres.emplace_back(sphere_1);
+	spheres->emplace_back(sphere_1);
 	physics_world.add_object(sphere_1.rigid_body);
 	scene.add(sphere_1.mesh_node);
 
 	auto sphere_2 = create_sphere(
 		gm::Vector3(-3.0, 1.0, 0.0), gm::Vector3(2.0, 12.0, 0.0), scene, glm::vec3(0.4, 0.3, 0.1), 1.25f, 1.25f
 	);
-	spheres.emplace_back(sphere_2);
+	spheres->emplace_back(sphere_2);
 	physics_world.add_object(sphere_2.rigid_body);
 	scene.add(sphere_2.mesh_node);
 
 	AreaTrigger area_trigger = {
 		std::make_shared<tics::CollisionArea>(),
 		std::make_shared<tics::Transform>(),
-		std::make_shared<tics::SphereCollider>(),
-		ron::gltf::import("default/models/icosphere/icosphere.glb").get_mesh_nodes().front()
+		std::make_shared<tics::MeshCollider>(),
+		ron::gltf::import("models/icosphere_lowres.glb").get_mesh_nodes().front()
 	};
 	area_trigger.area->set_collider(area_trigger.collider);
 	area_trigger.area->set_transform(area_trigger.transform);
-	area_trigger.area->on_collision_enter = [](const auto &other) { std::cout << "enter\n"; };
-	area_trigger.area->on_collision_exit = [](const auto &other) { std::cout << "exit\n"; };
-	area_trigger.collider->radius = 1.0;
-	area_trigger.transform->position = gm::Vector3(-4.0, 2.0, 0.0);
-	area_trigger.transform->scale = gm::Vector3(1.0, 1.0, 1.0);
+	area_trigger.area->on_collision_enter = [spheres](const auto &other) {
+		for (const auto &sphere : *spheres) {
+			if (sphere.rigid_body == other.lock()) {
+				sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"] = ron::make_uniform(glm::vec4(glm::vec3(1.0, 0.1, 0.1), 1.0));
+			}
+		}
+		std::cout << "enter\n";
+	};
+	area_trigger.area->on_collision_exit = [spheres](const auto &other) {
+		for (const auto &sphere : *spheres) {
+			if (sphere.rigid_body == other.lock()) {
+				sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"] = ron::make_uniform(glm::vec4(sphere.color, 1.0));
+			}
+		}
+		std::cout << "exit\n";
+	};
+	area_trigger.transform->position = gm::Vector3(-2.0, 2.0, 0.0);
+	area_trigger.transform->scale = gm::Vector3(2.5, 0.5, 4.5);
 	area_trigger.mesh_node->set_model_matrix(transform_to_model_matrix(*area_trigger.transform));
+	const auto area_trigger_geometry = area_trigger.mesh_node->get_mesh()->sections.front().geometry;
+	// copy positions and inidices to MeshCollider
+	area_trigger.collider->indices = area_trigger_geometry->indices;
+	for (const auto &vertex_pos : area_trigger_geometry->positions) {
+		area_trigger.collider->positions.push_back(gm::Vector3(vertex_pos.x, vertex_pos.y, vertex_pos.z));
+	}
 	physics_world.add_object(area_trigger.area);
 	scene.add(area_trigger.mesh_node);
 
@@ -414,7 +441,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 			size, // scale
 			size * size // weight
 		);
-		state.spheres.emplace_back(sphere);
+		state.spheres->emplace_back(sphere);
 		state.physics_world.add_object(sphere.rigid_body);
 		state.render_scene.add(sphere.mesh_node);
 	}
@@ -426,7 +453,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 	++accumulated_physics_time_count;
 	accumulated_physics_time += physics_time;
 
-	for (const auto &sphere : state.spheres) {
+	for (const auto &sphere : *state.spheres) {
 		sphere.mesh_node->set_model_matrix(transform_to_model_matrix(*sphere.transform));
 	}
 
