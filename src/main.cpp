@@ -33,7 +33,7 @@ struct Sphere {
 struct GroundPlane {
 	const std::shared_ptr<tics::StaticBody> static_body;
 	const std::shared_ptr<tics::Transform> transform;
-	const std::shared_ptr<tics::PlaneCollider> collider;
+	const std::shared_ptr<tics::MeshCollider> collider;
 };
 
 struct AreaTrigger {
@@ -196,13 +196,14 @@ int main() {
 					<< " - Render Time: "
 					<< std::fixed << std::setprecision(2) // specify decimal places
 					<< avg_render_time_ms << "ms"
-					<< " - Render FPS: "
-					<< static_cast<int>(1000.0 / avg_render_time_ms)
+					// << " - Render FPS: "
+					// << static_cast<int>(1000.0 / avg_render_time_ms)
 					<< " - Phyiscs Time: "
 					<< std::fixed << std::setprecision(2) // specify decimal places
 					<< avg_physics_time_ms << "ms"
-					<< " - Physics FPS: "
-					<< static_cast<int>(1000.0 / avg_physics_time_ms);
+					// << " - Physics FPS: "
+					// << static_cast<int>(1000.0 / avg_physics_time_ms)
+					;
 				glfwSetWindowTitle(window,  + title_stream.str().c_str());
 			}
 		}
@@ -304,9 +305,14 @@ ProgramState initialize(GLFWwindow* window) {
 	GroundPlane ground_plane {
 		std::make_shared<tics::StaticBody>(),
 		std::make_shared<tics::Transform>(),
-		std::make_shared<tics::PlaneCollider>(),
+		std::make_shared<tics::MeshCollider>(),
 	};
-	ground_plane.collider->normal = gm::Vector3(0.0, 1.0, 0.0);
+	const auto ground_geometry  = ron::gltf::import("models/ground.glb")
+		.get_mesh_nodes().front()->get_mesh()->sections.front().geometry;
+	ground_plane.collider->indices = ground_geometry->indices;
+	for (const auto &vertex_pos : ground_geometry->positions) {
+		ground_plane.collider->positions.push_back(gm::Vector3(vertex_pos.x, vertex_pos.y, vertex_pos.z));
+	}
 	ground_plane.static_body->set_collider(ground_plane.collider);
 	ground_plane.static_body->set_transform(ground_plane.transform);
 	physics_world.add_object(ground_plane.static_body);
@@ -446,7 +452,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 		state.render_scene.add(sphere.mesh_node);
 	}
 
-	float time_scale = 0.2f;
+	float time_scale = 1.0f;
 	state.physics_world.update(time_scale/60.0f);
 
 	const auto physics_time = std::chrono::high_resolution_clock::now() - start_time_point;
