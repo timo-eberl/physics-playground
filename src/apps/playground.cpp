@@ -3,6 +3,9 @@
 #include <chrono>
 #include <sstream>
 
+#include "game_loop.h"
+#include "utils.h"
+
 #include <tics.h>
 #include <ron.h>
 #include <glm/gtx/string_cast.hpp>
@@ -13,28 +16,12 @@
 #include <TSMatrix4D.h>
 #include <TSMotor3D.h>
 
-#include "game_loop.h"
-
 using namespace std::chrono_literals;
 
 auto accumulated_render_time = 0ns;
 unsigned int accumulated_render_time_count = 0;
 auto accumulated_physics_time = 0ns;
 unsigned int accumulated_physics_time_count = 0;
-
-struct Sphere {
-	const std::shared_ptr<tics::RigidBody> rigid_body;
-	const std::shared_ptr<tics::Transform> transform;
-	const std::shared_ptr<tics::MeshCollider> collider;
-	std::shared_ptr<ron::MeshNode> mesh_node;
-	glm::vec3 color;
-};
-
-struct GroundPlane {
-	const std::shared_ptr<tics::StaticBody> static_body;
-	const std::shared_ptr<tics::Transform> transform;
-	const std::shared_ptr<tics::MeshCollider> collider;
-};
 
 struct AreaTrigger {
 	const std::shared_ptr<tics::CollisionArea> area;
@@ -52,7 +39,7 @@ struct ProgramState {
 	std::chrono::_V2::system_clock::time_point start_time_point;
 
 	std::shared_ptr<std::vector<Sphere>> spheres;
-	GroundPlane ground_plane;
+	std::shared_ptr<std::vector<StaticObject>> static_geometry;
 	AreaTrigger area_trigger;
 	RaycastTarget raycast_target;
 	RaycastTarget raycast_target_2;
@@ -73,64 +60,6 @@ static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 static ProgramState initialize(GLFWwindow* window);
 static void process(GLFWwindow* window, ProgramState& state);
 static void render(GLFWwindow* window, ProgramState& state);
-
-static glm::mat4 transform_to_model_matrix(const tics::Transform &transform) {
-	auto model_matrix = glm::identity<glm::mat4>();
-
-	model_matrix = glm::translate(model_matrix, glm::vec3(
-		transform.position.x, transform.position.y, transform.position.z
-	));
-
-	return model_matrix;
-}
-
-static Sphere create_sphere(
-	Terathon::Vector3D position, Terathon::Vector3D velocity, const ron::Scene &scene,
-	glm::vec3 color = glm::vec3(1.0), float scale = 1.0f, float mass = 1.0f
-) {
-	Sphere sphere = Sphere({
-		std::make_shared<tics::RigidBody>(),
-		std::make_shared<tics::Transform>(),
-		std::make_shared<tics::MeshCollider>(),
-		ron::gltf::import("models/icosphere_lowres.glb").get_mesh_nodes().front()
-	});
-
-	sphere.rigid_body->set_collider(sphere.collider);
-	sphere.rigid_body->set_transform(sphere.transform);
-	sphere.rigid_body->mass = mass;
-	sphere.transform->position = position;
-	sphere.rigid_body->velocity = velocity;
-	sphere.color = color;
-
-	// apply scale to mesh
-	for (auto &section : sphere.mesh_node->get_mesh()->sections) {
-		for (auto &position : section.geometry->positions) {
-			position *= scale;
-		}
-	}
-
-	// copy the default material and modify it
-	const auto material = std::make_shared<ron::Material>(*scene.default_material);
-	material->uniforms["albedo_color"] = ron::make_uniform(glm::vec4(color, 1.0));
-
-	// copy the mesh node to set its color
-	const auto cloned_mesh_node = std::make_shared<ron::MeshNode>(
-		std::make_shared<ron::Mesh>(*sphere.mesh_node->get_mesh()),
-		transform_to_model_matrix(*sphere.transform)
-	);
-	cloned_mesh_node->get_mesh()->sections.front().material = material;
-
-	sphere.mesh_node = cloned_mesh_node;
-
-	const auto geometry = sphere.mesh_node->get_mesh()->sections.front().geometry;
-	// copy positions and inidices to MeshCollider
-	sphere.collider->indices = geometry->indices;
-	for (const auto &vertex_pos : geometry->positions) {
-		sphere.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
-	}
-
-	return sphere;
-}
 
 int main() {
 	glfwInit();
@@ -172,6 +101,7 @@ int main() {
 		while (!glfwWindowShouldClose(window)) {
 			game_loop.update();
 
+			// measure performance
 			static const auto update_interval = 250ms;
 			const auto now = std::chrono::high_resolution_clock::now();
 			if (now - last_title_update_time_point >= update_interval) {
@@ -217,23 +147,12 @@ int main() {
 }
 
 ProgramState initialize(GLFWwindow* window) {
+	// renderer setup
 	auto scene = ron::Scene();
-
-	ron::DirectionalLight light = {};
-	light.use_custom_shadow_target_world_position = true;
-	light.custom_shadow_target_world_position = glm::vec3(0.0f, 0.0f, 0.0f);
-	light.world_direction = glm::normalize(glm::vec3(0.1f, 1.0f, 0.0f));
-	light.shadow.enabled = true;
-	light.shadow.map_size = glm::uvec2(2048);
-	light.shadow.bias = 0.05f;
-	light.shadow.far = 30.0f;
-	light.shadow.frustum_size = 50.0f;
-
-	scene.set_directional_light(light);
-
+	scene.set_directional_light(create_generic_light());
 	auto renderer = std::make_unique<ron::OpenGLRenderer>(1280, 720);
 	renderer->set_clear_color(glm::vec4(0.1, 0.1, 0.1, 1.0));
-
+	// camera setup
 	const auto initial_camera_rotation = glm::vec2(glm::radians(-24.2f), glm::radians(63.6f));
 	auto camera_controls = ron::CameraViewportControls(initial_camera_rotation);
 	camera_controls.set_target(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -243,20 +162,22 @@ ProgramState initialize(GLFWwindow* window) {
 
 	auto spheres = std::make_shared<std::vector<Sphere>>();
 
+	// initial sphere
 	auto sphere_1 = create_sphere(
 		Terathon::Vector3D(0.0, 1.5, 0.25), Terathon::Vector3D(0.0, 8.0, 0.0), scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
 	);
-	spheres->emplace_back(sphere_1);
-	physics_world.add_object(sphere_1.rigid_body);
-	scene.add(sphere_1.mesh_node);
+	// spheres->emplace_back(sphere_1);
+	// physics_world.add_object(sphere_1.rigid_body);
+	// scene.add(sphere_1.mesh_node);
 
-	// auto sphere_2 = create_sphere(
-	// 	Terathon::Vector3D(-3.0, 1.0, 0.0), Terathon::Vector3D(2.0, 12.0, 0.0), scene, glm::vec3(0.4, 0.3, 0.1), 1.25f, 1.25f
-	// );
-	// spheres->emplace_back(sphere_2);
-	// physics_world.add_object(sphere_2.rigid_body);
-	// scene.add(sphere_2.mesh_node);
+	// add static geometry
+	auto static_geometry = create_static_objects("models/ground.glb");
+	for (const auto &static_object : *static_geometry) {
+		physics_world.add_object(static_object.static_body);
+		scene.add(static_object.mesh_node);
+	}
 
+	// area trigger that turns objects red that are inside it
 	AreaTrigger area_trigger = {
 		std::make_shared<tics::CollisionArea>(),
 		std::make_shared<tics::Transform>(),
@@ -272,7 +193,6 @@ ProgramState initialize(GLFWwindow* window) {
 					= ron::make_uniform(glm::vec4(glm::vec3(1.0, 0.1, 0.1), 1.0));
 			}
 		}
-		std::cout << "enter\n";
 	};
 	area_trigger.area->on_collision_exit = [spheres](const auto &other) {
 		for (const auto &sphere : *spheres) {
@@ -281,7 +201,6 @@ ProgramState initialize(GLFWwindow* window) {
 					= ron::make_uniform(glm::vec4(sphere.color, 1.0));
 			}
 		}
-		std::cout << "exit\n";
 	};
 	// apply scale to mesh
 	for (auto &section : area_trigger.mesh_node->get_mesh()->sections) {
@@ -300,6 +219,7 @@ ProgramState initialize(GLFWwindow* window) {
 	physics_world.add_object(area_trigger.area);
 	scene.add(area_trigger.mesh_node);
 
+	// raycasting setup - first target
 	RaycastTarget raycast_target = {
 		std::make_shared<tics::MeshCollider>(),
 		ron::gltf::import("models/triangle_0.glb").get_mesh_nodes().front()
@@ -312,6 +232,7 @@ ProgramState initialize(GLFWwindow* window) {
 	}
 	scene.add(raycast_target.mesh_node);
 
+	// raycasting setup - second target
 	RaycastTarget raycast_target_2 = {
 		std::make_shared<tics::MeshCollider>(),
 		ron::gltf::import("models/triangle_1.glb").get_mesh_nodes().front()
@@ -324,24 +245,11 @@ ProgramState initialize(GLFWwindow* window) {
 	}
 	scene.add(raycast_target_2.mesh_node);
 
-	GroundPlane ground_plane {
-		std::make_shared<tics::StaticBody>(),
-		std::make_shared<tics::Transform>(),
-		std::make_shared<tics::MeshCollider>(),
-	};
-	const auto ground_geometry  = ron::gltf::import("models/ground.glb")
-		.get_mesh_nodes().front()->get_mesh()->sections.front().geometry;
-	ground_plane.collider->indices = ground_geometry->indices;
-	for (const auto &vertex_pos : ground_geometry->positions) {
-		ground_plane.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
-	}
-	ground_plane.static_body->set_collider(ground_plane.collider);
-	ground_plane.static_body->set_transform(ground_plane.transform);
-	physics_world.add_object(ground_plane.static_body);
-	scene.add(ron::gltf::import("models/ground.glb"));
-
+	// applies forces
 	auto impulse_solver = std::make_shared<tics::ImpulseSolver>();
+	// fixes intersections
 	auto position_solver = std::make_shared<tics::PositionSolver>();
+	// alerts collision areas
 	auto collision_area_solver = std::make_shared<tics::CollisionAreaSolver>();
 	physics_world.add_solver(impulse_solver);
 	physics_world.add_solver(position_solver);
@@ -354,7 +262,7 @@ ProgramState initialize(GLFWwindow* window) {
 	return ProgramState {
 		std::chrono::high_resolution_clock::now(),
 		spheres,
-		ground_plane,
+		static_geometry,
 		area_trigger,
 		raycast_target,
 		raycast_target_2,

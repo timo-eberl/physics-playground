@@ -33,7 +33,7 @@ Terathon::Vector3D support_point_mesh(
 	const auto &collider = static_cast<const MeshCollider&>(c);
 
 	// find the support point in local space
-	auto support_point_dot = 0.0;
+	auto support_point_dot = -1.0;
 	auto support_point = Terathon::Vector3D(0,0,0);
 	for (const auto &p : collider.positions) {
 		const auto p_dot_d = Terathon::Dot(p, d);
@@ -42,6 +42,9 @@ Terathon::Vector3D support_point_mesh(
 			support_point = p;
 		}
 	}
+
+	// this fails if the center position of a mesh is not inside the mesh
+	assert(support_point_dot >= 0.0);
 
 	support_point = support_point + t.position;
 

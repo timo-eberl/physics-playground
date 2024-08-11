@@ -19,7 +19,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 		src/game_loop.cpp
 	)
 	add_executable(${PROJECT_NAME}
-		src/main.cpp
+		src/apps/playground.cpp
 		${SOURCES}
 	)
 	target_include_directories(${PROJECT_NAME} PRIVATE src)
