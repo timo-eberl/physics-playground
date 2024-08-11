@@ -16,7 +16,6 @@ namespace tics {
 
 struct Transform {
 	gm::Vector3 position;
-	gm::Vector3 scale = gm::Vector3(1);
 };
 
 enum ColliderType {

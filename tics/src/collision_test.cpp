@@ -35,11 +35,10 @@ gm::Vector3 support_point_mesh(
 	auto support_point_dot = 0.0;
 	auto support_point = gm::Vector3(0);
 	for (const auto &p : collider.positions) {
-		const auto p_scaled = p * t.scale;
-		const auto p_dot_d = gm::dot(p_scaled, d);
+		const auto p_dot_d = gm::dot(p, d);
 		if (p_dot_d > support_point_dot) {
 			support_point_dot = p_dot_d;
-			support_point = p_scaled;
+			support_point = p;
 		}
 	}
 
@@ -65,9 +64,6 @@ CollisionPoints collision_test_sphere_sphere(
 ) {
 	assert(a.type == ColliderType::SPHERE);
 	assert(b.type == ColliderType::SPHERE);
-	// spheres support only uniform scales
-	assert(ta.scale.x == ta.scale.y && ta.scale.y == ta.scale.z);
-	assert(tb.scale.x == tb.scale.y && tb.scale.y == tb.scale.z);
 
 	auto& a_collider = static_cast<const SphereCollider&>(a);
 	auto& b_collider = static_cast<const SphereCollider&>(b);
@@ -75,13 +71,10 @@ CollisionPoints collision_test_sphere_sphere(
 	auto a_center = a_collider.center + ta.position;
 	auto b_center = b_collider.center + tb.position;
 
-	auto a_radius = ta.scale.x * a_collider.radius;
-	auto b_radius = tb.scale.x * b_collider.radius;
-
 	auto ab_vector = b_center - a_center;
 	auto ab_distance = gm::length(ab_vector);
 
-	if (ab_distance > a_radius + b_radius) {
+	if (ab_distance > a_collider.radius + b_collider.radius) {
 		// no collision
 		return CollisionPoints();
 	}
@@ -92,8 +85,8 @@ CollisionPoints collision_test_sphere_sphere(
 
 	collision_points.has_collision = true;
 
-	const auto collision_points_a = a_center + ab_normal * a_radius;
-	const auto collision_points_b = b_center - ab_normal * b_radius;
+	const auto collision_points_a = a_center + ab_normal * a_collider.radius;
+	const auto collision_points_b = b_center - ab_normal * b_collider.radius;
 
 	collision_points.normal = -ab_normal;
 	collision_points.depth = gm::length(collision_points_b - collision_points_a);
@@ -107,21 +100,18 @@ CollisionPoints collision_test_sphere_plane(
 ) {
 	assert(a.type == ColliderType::SPHERE);
 	assert(b.type == ColliderType::PLANE);
-	// spheres support only uniform scales
-	assert(ta.scale.x == ta.scale.y && ta.scale.y == ta.scale.z);
 
 	auto& sphere_collider = static_cast<const SphereCollider&>(a);
 	auto& plane_collider = static_cast<const PlaneCollider&>(b);
 
 	auto sphere_center = sphere_collider.center + ta.position;
-	auto sphere_radius = ta.scale.x * sphere_collider.radius;
 
 	auto plane_normal = plane_collider.normal; // TODO: rotate with tb
 	auto point_on_plane = plane_normal * plane_collider.distance + tb.position;
 
 	auto distance = gm::dot(plane_normal, sphere_center - point_on_plane);
 
-	if (distance > sphere_radius) {
+	if (distance > sphere_collider.radius) {
 		// no collision
 		return CollisionPoints();
 	}
@@ -131,7 +121,7 @@ CollisionPoints collision_test_sphere_plane(
 	collision_points.has_collision = true;
 
 	// furthest point of sphere a into plane b
-	const auto collision_points_a = sphere_center - plane_normal * sphere_radius;
+	const auto collision_points_a = sphere_center - plane_normal * sphere_collider.radius;
 	// furthest point of plane b into sphere a
 	const auto collision_points_b = sphere_center - plane_normal * distance;
 

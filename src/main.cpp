@@ -81,10 +81,6 @@ static glm::mat4 transform_to_model_matrix(const tics::Transform &transform) {
 		transform.position.x, transform.position.y, transform.position.z
 	));
 
-	model_matrix = glm::scale(model_matrix, glm::vec3(
-		transform.scale.x, transform.scale.y, transform.scale.z
-	));
-
 	return model_matrix;
 }
 
@@ -92,22 +88,26 @@ static Sphere create_sphere(
 	gm::Vector3 position, gm::Vector3 velocity, const ron::Scene &scene,
 	glm::vec3 color = glm::vec3(1.0), float scale = 1.0f, float mass = 1.0f
 ) {
-	static const auto sphere_mesh = ron::gltf::import("models/icosphere_lowres.glb")
-		.get_mesh_nodes()
-		.front();
 	Sphere sphere = Sphere({
 		std::make_shared<tics::RigidBody>(),
 		std::make_shared<tics::Transform>(),
 		std::make_shared<tics::MeshCollider>(),
-		std::make_shared<ron::MeshNode>(*sphere_mesh) // copy
+		ron::gltf::import("models/icosphere_lowres.glb").get_mesh_nodes().front()
 	});
+
 	sphere.rigid_body->set_collider(sphere.collider);
 	sphere.rigid_body->set_transform(sphere.transform);
 	sphere.rigid_body->mass = mass;
 	sphere.transform->position = position;
-	sphere.transform->scale = gm::Vector3(scale, scale, scale);
 	sphere.rigid_body->velocity = velocity;
 	sphere.color = color;
+
+	// apply scale to mesh
+	for (auto &section : sphere.mesh_node->get_mesh()->sections) {
+		for (auto &position : section.geometry->positions) {
+			position *= scale;
+		}
+	}
 
 	// copy the default material and modify it
 	const auto material = std::make_shared<ron::Material>(*scene.default_material);
@@ -281,8 +281,13 @@ ProgramState initialize(GLFWwindow* window) {
 		}
 		std::cout << "exit\n";
 	};
+	// apply scale to mesh
+	for (auto &section : area_trigger.mesh_node->get_mesh()->sections) {
+		for (auto &position : section.geometry->positions) {
+			position *= glm::vec3(2.0, 1.0, 4.0);
+		}
+	}
 	area_trigger.transform->position = gm::Vector3(-2.0, 2.0, 0.0);
-	area_trigger.transform->scale = gm::Vector3(2.0, 1.0, 4.0);
 	area_trigger.mesh_node->set_model_matrix(transform_to_model_matrix(*area_trigger.transform));
 	const auto area_trigger_geometry = area_trigger.mesh_node->get_mesh()->sections.front().geometry;
 	// copy positions and inidices to MeshCollider
@@ -495,7 +500,6 @@ void process(GLFWwindow* window, ProgramState& state) {
 				static_cast<double>(std::rand()) / RAND_MAX,
 				static_cast<double>(std::rand()) / RAND_MAX
 			),
-			size, // scale
 			size * size // weight
 		);
 		state.spheres->emplace_back(sphere);
