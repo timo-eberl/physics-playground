@@ -45,7 +45,7 @@ void World::update(const float delta) {
 			rigid_body->velocity += acceleration * delta;
 			rigid_body->get_transform().lock()->position += rigid_body->velocity * delta;
 
-			rigid_body->force = gm::Vector3(0.0f, 0.0f, 0.0f);
+			rigid_body->force = Terathon::Vector3D(0,0,0);
 		}
 	}
 }
@@ -90,7 +90,7 @@ void World::resolve_collisions(const float delta) {
 	}
 }
 
-void World::set_gravity(const gm::Vector3 gravity) {
+void World::set_gravity(const Terathon::Vector3D gravity) {
 	m_gravity = gravity;
 }
 

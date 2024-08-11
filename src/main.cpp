@@ -85,7 +85,7 @@ static glm::mat4 transform_to_model_matrix(const tics::Transform &transform) {
 }
 
 static Sphere create_sphere(
-	gm::Vector3 position, gm::Vector3 velocity, const ron::Scene &scene,
+	Terathon::Vector3D position, Terathon::Vector3D velocity, const ron::Scene &scene,
 	glm::vec3 color = glm::vec3(1.0), float scale = 1.0f, float mass = 1.0f
 ) {
 	Sphere sphere = Sphere({
@@ -126,7 +126,7 @@ static Sphere create_sphere(
 	// copy positions and inidices to MeshCollider
 	sphere.collider->indices = geometry->indices;
 	for (const auto &vertex_pos : geometry->positions) {
-		sphere.collider->positions.push_back(gm::Vector3(vertex_pos.x, vertex_pos.y, vertex_pos.z));
+		sphere.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
 	}
 
 	return sphere;
@@ -239,19 +239,19 @@ ProgramState initialize(GLFWwindow* window) {
 	camera_controls.set_target(glm::vec3(0.0f, 0.0f, 0.0f));
 
 	tics::World physics_world;
-	physics_world.set_gravity(gm::Vector3(0.0, -10.0, 0.0));
+	physics_world.set_gravity(Terathon::Vector3D(0.0, -10.0, 0.0));
 
 	auto spheres = std::make_shared<std::vector<Sphere>>();
 
 	auto sphere_1 = create_sphere(
-		gm::Vector3(0.0, 1.5, 0.25), gm::Vector3(0.0, 8.0, 0.0), scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
+		Terathon::Vector3D(0.0, 1.5, 0.25), Terathon::Vector3D(0.0, 8.0, 0.0), scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
 	);
 	spheres->emplace_back(sphere_1);
 	physics_world.add_object(sphere_1.rigid_body);
 	scene.add(sphere_1.mesh_node);
 
 	// auto sphere_2 = create_sphere(
-	// 	gm::Vector3(-3.0, 1.0, 0.0), gm::Vector3(2.0, 12.0, 0.0), scene, glm::vec3(0.4, 0.3, 0.1), 1.25f, 1.25f
+	// 	Terathon::Vector3D(-3.0, 1.0, 0.0), Terathon::Vector3D(2.0, 12.0, 0.0), scene, glm::vec3(0.4, 0.3, 0.1), 1.25f, 1.25f
 	// );
 	// spheres->emplace_back(sphere_2);
 	// physics_world.add_object(sphere_2.rigid_body);
@@ -268,7 +268,8 @@ ProgramState initialize(GLFWwindow* window) {
 	area_trigger.area->on_collision_enter = [spheres](const auto &other) {
 		for (const auto &sphere : *spheres) {
 			if (sphere.rigid_body == other.lock()) {
-				sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"] = ron::make_uniform(glm::vec4(glm::vec3(1.0, 0.1, 0.1), 1.0));
+				sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"]
+					= ron::make_uniform(glm::vec4(glm::vec3(1.0, 0.1, 0.1), 1.0));
 			}
 		}
 		std::cout << "enter\n";
@@ -276,7 +277,8 @@ ProgramState initialize(GLFWwindow* window) {
 	area_trigger.area->on_collision_exit = [spheres](const auto &other) {
 		for (const auto &sphere : *spheres) {
 			if (sphere.rigid_body == other.lock()) {
-				sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"] = ron::make_uniform(glm::vec4(sphere.color, 1.0));
+				sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"]
+					= ron::make_uniform(glm::vec4(sphere.color, 1.0));
 			}
 		}
 		std::cout << "exit\n";
@@ -287,13 +289,13 @@ ProgramState initialize(GLFWwindow* window) {
 			position *= glm::vec3(2.0, 1.0, 4.0);
 		}
 	}
-	area_trigger.transform->position = gm::Vector3(-2.0, 2.0, 0.0);
+	area_trigger.transform->position = Terathon::Vector3D(-2.0, 2.0, 0.0);
 	area_trigger.mesh_node->set_model_matrix(transform_to_model_matrix(*area_trigger.transform));
 	const auto area_trigger_geometry = area_trigger.mesh_node->get_mesh()->sections.front().geometry;
 	// copy positions and inidices to MeshCollider
 	area_trigger.collider->indices = area_trigger_geometry->indices;
 	for (const auto &vertex_pos : area_trigger_geometry->positions) {
-		area_trigger.collider->positions.push_back(gm::Vector3(vertex_pos.x, vertex_pos.y, vertex_pos.z));
+		area_trigger.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
 	}
 	physics_world.add_object(area_trigger.area);
 	scene.add(area_trigger.mesh_node);
@@ -306,7 +308,7 @@ ProgramState initialize(GLFWwindow* window) {
 	// copy positions and inidices to MeshCollider
 	raycast_target.collider->indices = raycast_target_geometry->indices;
 	for (const auto &vertex_pos : raycast_target_geometry->positions) {
-		raycast_target.collider->positions.push_back(gm::Vector3(vertex_pos.x, vertex_pos.y, vertex_pos.z));
+		raycast_target.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
 	}
 	scene.add(raycast_target.mesh_node);
 
@@ -318,7 +320,7 @@ ProgramState initialize(GLFWwindow* window) {
 	// copy positions and inidices to MeshCollider
 	raycast_target_2.collider->indices = raycast_target_2_geometry->indices;
 	for (const auto &vertex_pos : raycast_target_2_geometry->positions) {
-		raycast_target_2.collider->positions.push_back(gm::Vector3(vertex_pos.x, vertex_pos.y, vertex_pos.z));
+		raycast_target_2.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
 	}
 	scene.add(raycast_target_2.mesh_node);
 
@@ -331,7 +333,7 @@ ProgramState initialize(GLFWwindow* window) {
 		.get_mesh_nodes().front()->get_mesh()->sections.front().geometry;
 	ground_plane.collider->indices = ground_geometry->indices;
 	for (const auto &vertex_pos : ground_geometry->positions) {
-		ground_plane.collider->positions.push_back(gm::Vector3(vertex_pos.x, vertex_pos.y, vertex_pos.z));
+		ground_plane.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
 	}
 	ground_plane.static_body->set_collider(ground_plane.collider);
 	ground_plane.static_body->set_transform(ground_plane.transform);
@@ -484,12 +486,12 @@ void process(GLFWwindow* window, ProgramState& state) {
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT == GLFW_PRESS)) {
 		const float size = 0.5 + 0.5 * static_cast<double>(std::rand()) / RAND_MAX;
 		auto sphere = create_sphere(
-			gm::Vector3( // position
+			Terathon::Vector3D( // position
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*1.0,
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX) + 3.0,
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*1.0
 			),
-			gm::Vector3( // velocity
+			Terathon::Vector3D( // velocity
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5,
 				(    static_cast<double>(std::rand()) / RAND_MAX)*5,
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5

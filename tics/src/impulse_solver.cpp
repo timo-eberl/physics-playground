@@ -23,12 +23,12 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 		else if (sb_a && rb_b) { object_combination = StaticBodyRigidBody; }
 		else { continue; } // no valid object combination combination
 
-		const auto velocity_a = rb_a ? rb_a->velocity : gm::Vector3(0.0, 0.0, 0.0);
-		const auto velocity_b = rb_b ? rb_b->velocity : gm::Vector3(0.0, 0.0, 0.0);
+		const auto velocity_a = rb_a ? rb_a->velocity : Terathon::Vector3D(0.0, 0.0, 0.0);
+		const auto velocity_b = rb_b ? rb_b->velocity : Terathon::Vector3D(0.0, 0.0, 0.0);
 
 		const auto relative_velocity = velocity_a - velocity_b;
 		// relative velocity in the collision normal direction
-		const auto n_dot_v = gm::dot(relative_velocity, collision.points.normal);
+		const auto n_dot_v = Terathon::Dot(relative_velocity, collision.points.normal);
 
 		// the objects are separating which means the collision response has already happened
 		if (n_dot_v >= 0.0) { continue; }

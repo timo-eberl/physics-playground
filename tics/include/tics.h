@@ -6,7 +6,6 @@
 #include <memory>
 #include <functional>
 
-#include <geomath.h>
 #include <TSVector3D.h>
 #include <TSMatrix3D.h>
 #include <TSMatrix4D.h>
@@ -15,7 +14,7 @@
 namespace tics {
 
 struct Transform {
-	gm::Vector3 position;
+	Terathon::Vector3D position;
 };
 
 enum ColliderType {
@@ -30,19 +29,19 @@ struct Collider {
 
 struct SphereCollider : Collider {
 	SphereCollider() { type = SPHERE; };
-	gm::Vector3 center = gm::Vector3(0);
+	Terathon::Vector3D center = Terathon::Vector3D(0, 0, 0);
 	float radius = 1.0f;
 };
 
 struct PlaneCollider : Collider {
 	PlaneCollider() { type = PLANE; };
-	gm::Vector3 normal = gm::Vector3(0, 1, 0);
+	Terathon::Vector3D normal = Terathon::Vector3D(0, 1, 0);
 	float distance = 0.0f;
 };
 
 struct MeshCollider : Collider {
 	MeshCollider() { type = MESH; };
-	std::vector<gm::Vector3> positions = {};
+	std::vector<Terathon::Vector3D> positions = {};
 	std::vector<uint32_t> indices = {};
 };
 
@@ -59,7 +58,7 @@ bool raycast(
 struct CollisionPoints {
 	// a and b are the points where each shape penetrates the other most
 	// b - a is the penetration vector
-	gm::Vector3 normal; //penetration vector direction
+	Terathon::Vector3D normal; //penetration vector direction
 	float depth; // penetration vector length
 	bool has_collision = false;
 };
@@ -105,8 +104,10 @@ public:
 	virtual void set_transform(const std::weak_ptr<Transform> transform) override;
 	virtual std::weak_ptr<Transform> get_transform() const override;
 
-	gm::Vector3 velocity = gm::Vector3(0);
-	gm::Vector3 force = gm::Vector3(0);
+	Terathon::Vector3D velocity = Terathon::Vector3D(0,0,0);
+
+	// reset and accumulated every update
+	Terathon::Vector3D force = Terathon::Vector3D(0,0,0);
 
 	float mass = 1.0f;
 	float gravity_scale = 1.0f;
@@ -156,12 +157,12 @@ public:
 
 	void resolve_collisions(const float delta);
 
-	void set_gravity(const gm::Vector3 gravity);
+	void set_gravity(const Terathon::Vector3D gravity);
 	void set_collision_event(const std::function<void(const Collision&)> collision_event);
 private:
 	std::vector<std::weak_ptr<ICollisionObject>> m_objects;
 	std::vector<std::weak_ptr<ISolver>> m_solvers;
-	gm::Vector3 m_gravity = gm::Vector3(0.0f, -9.81f, 0.0f);
+	Terathon::Vector3D m_gravity = Terathon::Vector3D(0.0, -9.81, 0.0);
 	std::function<void(const Collision&)> m_collision_event;
 };
 

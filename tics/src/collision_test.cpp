@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <limits>
+#include <algorithm>
 
 using tics::Transform;
 using tics::CollisionPoints;
@@ -14,8 +15,8 @@ using tics::MeshCollider;
 
 // A support function takes a direction d and returns a point on the boundary of a shape "furthest" in direction d
 
-gm::Vector3 support_point_sphere(
-	const Collider &c, const gm::Vector3 &d
+Terathon::Vector3D support_point_sphere(
+	const Collider &c, const Terathon::Vector3D &d
 ) {
 	assert(c.type == ColliderType::SPHERE);
 
@@ -24,8 +25,8 @@ gm::Vector3 support_point_sphere(
 	return collider.center + d * collider.radius;
 }
 
-gm::Vector3 support_point_mesh(
-	const Collider &c, const Transform &t, const gm::Vector3 &d
+Terathon::Vector3D support_point_mesh(
+	const Collider &c, const Transform &t, const Terathon::Vector3D &d
 ) {
 	assert(c.type == ColliderType::MESH);
 
@@ -33,9 +34,9 @@ gm::Vector3 support_point_mesh(
 
 	// find the support point in local space
 	auto support_point_dot = 0.0;
-	auto support_point = gm::Vector3(0);
+	auto support_point = Terathon::Vector3D(0,0,0);
 	for (const auto &p : collider.positions) {
-		const auto p_dot_d = gm::dot(p, d);
+		const auto p_dot_d = Terathon::Dot(p, d);
 		if (p_dot_d > support_point_dot) {
 			support_point_dot = p_dot_d;
 			support_point = p;
@@ -47,10 +48,10 @@ gm::Vector3 support_point_mesh(
 	return support_point;
 }
 
-gm::Vector3 support_point_on_minkowski_diff_mesh_mesh(
+Terathon::Vector3D support_point_on_minkowski_diff_mesh_mesh(
 	const Collider &ca, const Transform &ta,
 	const Collider &cb, const Transform &tb,
-	const gm::Vector3 &d
+	const Terathon::Vector3D &d
 ) {
 	assert(ca.type == ColliderType::MESH);
 	assert(cb.type == ColliderType::MESH);
@@ -72,14 +73,14 @@ CollisionPoints collision_test_sphere_sphere(
 	auto b_center = b_collider.center + tb.position;
 
 	auto ab_vector = b_center - a_center;
-	auto ab_distance = gm::length(ab_vector);
+	auto ab_distance = Terathon::Magnitude(ab_vector);
 
 	if (ab_distance > a_collider.radius + b_collider.radius) {
 		// no collision
 		return CollisionPoints();
 	}
 
-	auto ab_normal = gm::normalize(ab_vector);
+	auto ab_normal = Terathon::Normalize(ab_vector);
 
 	auto collision_points = CollisionPoints();
 
@@ -89,7 +90,7 @@ CollisionPoints collision_test_sphere_sphere(
 	const auto collision_points_b = b_center - ab_normal * b_collider.radius;
 
 	collision_points.normal = -ab_normal;
-	collision_points.depth = gm::length(collision_points_b - collision_points_a);
+	collision_points.depth = Terathon::Magnitude(collision_points_b - collision_points_a);
 
 	return collision_points;
 }
@@ -109,7 +110,7 @@ CollisionPoints collision_test_sphere_plane(
 	auto plane_normal = plane_collider.normal; // TODO: rotate with tb
 	auto point_on_plane = plane_normal * plane_collider.distance + tb.position;
 
-	auto distance = gm::dot(plane_normal, sphere_center - point_on_plane);
+	auto distance = Terathon::Dot(plane_normal, sphere_center - point_on_plane);
 
 	if (distance > sphere_collider.radius) {
 		// no collision
@@ -126,7 +127,7 @@ CollisionPoints collision_test_sphere_plane(
 	const auto collision_points_b = sphere_center - plane_normal * distance;
 
 	collision_points.normal = plane_normal;
-	collision_points.depth = gm::length(collision_points_b - collision_points_a);
+	collision_points.depth = Terathon::Magnitude(collision_points_b - collision_points_a);
 
 	return collision_points;
 }
@@ -163,20 +164,22 @@ CollisionPoints collision_test_mesh_mesh(
 	// GJK Algorithm https://youtu.be/ajv46BSqcK4
 
 	// the first direction is arbitrary. we choose the direction from the origin of one shape to the other
-	auto d = gm::normalize( tb.position - ta.position );
+	auto d = Terathon::Normalize( tb.position - ta.position );
 
-	gm::Vector3 simplex [4] = { gm::Vector3(0), gm::Vector3(0), gm::Vector3(0), gm::Vector3(0) };
+	Terathon::Vector3D simplex [4] = {
+		Terathon::Vector3D(0,0,0), Terathon::Vector3D(0,0,0), Terathon::Vector3D(0,0,0), Terathon::Vector3D(0,0,0)
+	};
 	// find the first support point on the minkowski difference in direction d
 	simplex[0] = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
 
 	// the next direction is towards the origin
 	// FIXME: probably the normalize can be removed?
-	d = gm::normalize( - simplex[0] );
+	d = Terathon::Normalize( - simplex[0] );
 
 	// find the second support point
 	simplex[1] = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
 	// if the next support point did not "pass" the origin, the shapes do not intersect
-	if (gm::dot(simplex[1], d) < 0) {
+	if (Terathon::Dot(simplex[1], d) < 0) {
 		return CollisionPoints();
 	}
 
@@ -186,14 +189,14 @@ CollisionPoints collision_test_mesh_mesh(
 
 	// triple product: vector perpendicular to AB pointing toward the origin
 	// FIXME: probably the normalize can be removed?
-	d = gm::normalize( gm::cross( gm::cross(AB, AO), AB ) );
+	d = Terathon::Normalize ( Terathon::Cross ( Terathon::Cross (AB, AO), AB ) );
 
 	// find the third support point
 	while (true) {
 		simplex[2] = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
 
 		// if the new support point did not "pass" the origin, the shapes do not intersect
-		if (gm::dot(simplex[2], d) < 0) {
+		if (Terathon::Dot(simplex[2], d) < 0) {
 			return CollisionPoints();
 		}
 
@@ -203,21 +206,21 @@ CollisionPoints collision_test_mesh_mesh(
 		const auto AO =            - simplex[2];
 
 		// triple products to define regions R_AB and R_AC
-		const auto ABC_normal = gm::cross(AB, AC);
+		const auto ABC_normal = Terathon::Cross(AB, AC);
 		// FIXME: probably the normalize can be removed?
-		const auto AB_normal = gm::normalize( gm::cross( gm::cross(AC, AB), AB ) );
+		const auto AB_normal = Terathon::Normalize( Terathon::Cross( Terathon::Cross(AC, AB), AB ) );
 		// FIXME: probably the normalize can be removed?
-		const auto AC_normal = gm::normalize( gm::cross( ABC_normal, AC ) );
+		const auto AC_normal = Terathon::Normalize( Terathon::Cross( ABC_normal, AC ) );
 
 		// TODO: Add check if the origin lies on the line AB or AC
 
-		if (gm::dot( AB_normal, AO ) > 0) {
+		if (Terathon::Dot( AB_normal, AO ) > 0) {
 			// We are in region AB
 			// Remove current C, move the array so that the most recently added vertex is always at simplex[2]
 			simplex[0] = simplex[1]; simplex[1] = simplex[2];
 			d = AB_normal;
 		}
-		else if (gm::dot( AC_normal, AO ) > 0) {
+		else if (Terathon::Dot( AC_normal, AO ) > 0) {
 			// We are in region AC
 			// Remove current B, move the array so that the most recently added vertex is always at simplex[2]
 			simplex[1] = simplex[2];
@@ -226,17 +229,17 @@ CollisionPoints collision_test_mesh_mesh(
 		else {
 			// We are in region ABC. Check if the origin is above or below ABC and move on.
 
-			if (gm::dot( ABC_normal, AO ) > 0) {
+			if (Terathon::Dot( ABC_normal, AO ) > 0) {
 				// above ABC
 				// FIXME: probably the normalize can be removed?
-				d = gm::normalize(ABC_normal);
+				d = Terathon::Normalize(ABC_normal);
 			}
 			else {
 				// below ABC
 				// swap current C and B (change winding order), so we are above ABC again
 				const auto B = simplex[1]; simplex[1] = simplex[0]; simplex[0] = B;
 				// FIXME: probably the normalize can be removed?
-				d = - gm::normalize(ABC_normal);
+				d = - Terathon::Normalize(ABC_normal);
 			}
 
 			break;
@@ -248,7 +251,7 @@ CollisionPoints collision_test_mesh_mesh(
 		simplex[3] = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
 
 		// if the new support point did not "pass" the origin, the shapes do not intersect
-		if (gm::dot(simplex[3], d) < 0) {
+		if (Terathon::Dot(simplex[3], d) < 0) {
 			return CollisionPoints();
 		}
 
@@ -262,20 +265,20 @@ CollisionPoints collision_test_mesh_mesh(
 		const auto AD = D - A;
 		const auto AO =   - A;
 
-		const auto ABC_normal = gm::cross(AB, AC);
-		const auto ACD_normal = gm::cross(AC, AD);
-		const auto ADB_normal = gm::cross(AD, AB);
+		const auto ABC_normal = Terathon::Cross(AB, AC);
+		const auto ACD_normal = Terathon::Cross(AC, AD);
+		const auto ADB_normal = Terathon::Cross(AD, AB);
 
 		// Check in which region we are. Remove the vertex that is not part of that region
-		if (gm::dot( ABC_normal, AO ) > 0) {
+		if (Terathon::Dot( ABC_normal, AO ) > 0) {
 			simplex[2] = A; simplex[1] = B; simplex[0] = C;
 			d = ABC_normal;
 		}
-		else if (gm::dot( ACD_normal, AO ) > 0) {
+		else if (Terathon::Dot( ACD_normal, AO ) > 0) {
 			simplex[2] = A; simplex[1] = C; simplex[0] = D;
 			d = ACD_normal;
 		}
-		else if (gm::dot( ADB_normal, AO ) > 0) {
+		else if (Terathon::Dot( ADB_normal, AO ) > 0) {
 			simplex[2] = A; simplex[1] = D; simplex[0] = B;
 			d = ADB_normal;
 		}
@@ -300,7 +303,7 @@ CollisionPoints collision_test_mesh_mesh(
 			// if not, we found the closest face
 
 			// initialize the polytope with the data from the simplex
-			std::vector<gm::Vector3> polytope_positions = {};
+			std::vector<Terathon::Vector3D> polytope_positions = {};
 			polytope_positions.insert(polytope_positions.end(), { simplex[0], simplex[1], simplex[2], simplex[3] });
 			// order the vertices of the triangles so that the normals are always pointing outwards
 			std::vector<uint32_t> polytope_indices = {};
@@ -313,18 +316,18 @@ CollisionPoints collision_test_mesh_mesh(
 
 			// calculate face normals vec4(vec3(normal), distance)
 			// and find the face closest to the origin
-			std::vector<gm::Vector4> polytope_normals = {};
-			auto closest_distance = std::numeric_limits<double>::max();
+			std::vector<Terathon::Vector4D> polytope_normals = {};
+			auto closest_distance = std::numeric_limits<float>::max();
 			size_t closest_index = 0;
 			for (size_t i = 0; i < polytope_indices.size() / 3; i++) {
-				gm::Vector3 a = polytope_positions[polytope_indices[i * 3    ]];
-				gm::Vector3 b = polytope_positions[polytope_indices[i * 3 + 1]];
-				gm::Vector3 c = polytope_positions[polytope_indices[i * 3 + 2]];
+				Terathon::Vector3D a = polytope_positions[polytope_indices[i * 3    ]];
+				Terathon::Vector3D b = polytope_positions[polytope_indices[i * 3 + 1]];
+				Terathon::Vector3D c = polytope_positions[polytope_indices[i * 3 + 2]];
 
-				const auto normal = gm::normalize( gm::cross(b - a, c - a) );
-				const double distance = dot(normal, a);
-				const double distanceb = dot(normal, b);
-				const double distancec = dot(normal, c);
+				const auto normal = Terathon::Normalize( Terathon::Cross(b - a, c - a) );
+				const double distance = Terathon::Dot(normal, a);
+				const double distanceb = Terathon::Dot(normal, b);
+				const double distancec = Terathon::Dot(normal, c);
 
 				polytope_normals.emplace_back(normal, distance);
 
@@ -338,7 +341,7 @@ CollisionPoints collision_test_mesh_mesh(
 				// search for a new support point in the direction of the normal of the closest face
 				d = polytope_normals[closest_index].xyz;
 				const auto new_support_point = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
-				const auto support_distance = gm::dot(d, new_support_point);
+				const auto support_distance = Terathon::Dot(d, new_support_point);
 
 				// check if the support point lies on the same plane as the closest face
 				// if it does, the polytype cannot be further expanded
@@ -355,7 +358,7 @@ CollisionPoints collision_test_mesh_mesh(
 
 				for (size_t i = 0; i < polytope_indices.size() / 3; i++) {
 					// check if the support point is in front of the triangle
-					if (gm::dot(polytope_normals[i].xyz, new_support_point - polytope_positions[polytope_indices[i * 3]]) > 0) {
+					if (Terathon::Dot(polytope_normals[i].xyz, new_support_point - polytope_positions[polytope_indices[i * 3]]) > 0) {
 						// if it is, collect all unique edges
 						add_if_unique_edge(unique_edges, polytope_indices, polytope_indices[i*3    ], polytope_indices[i*3 + 1]);
 						add_if_unique_edge(unique_edges, polytope_indices, polytope_indices[i*3 + 1], polytope_indices[i*3 + 2]);
@@ -379,12 +382,12 @@ CollisionPoints collision_test_mesh_mesh(
 					polytope_indices.push_back(edge_index_b);
 					polytope_indices.push_back(new_vertex_index);
 
-					gm::Vector3 a = polytope_positions[edge_index_a];
-					gm::Vector3 b = polytope_positions[edge_index_b];
-					gm::Vector3 c = polytope_positions[new_vertex_index];
+					Terathon::Vector3D a = polytope_positions[edge_index_a];
+					Terathon::Vector3D b = polytope_positions[edge_index_b];
+					Terathon::Vector3D c = polytope_positions[new_vertex_index];
 
-					auto normal = gm::normalize( gm::cross(b - a, c - a) );
-					double distance = dot(normal, a);
+					auto normal = Terathon::Normalize( Terathon::Cross(b - a, c - a) );
+					double distance = Terathon::Dot(normal, a);
 
 					if (distance < 0) {
 						normal = -normal;

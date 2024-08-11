@@ -1,6 +1,7 @@
 #include "tics.h"
 
 #include <iostream>
+#include <sstream>
 
 #include <TSRigid3D.h>
 #include <TSVector4D.h>
@@ -23,15 +24,15 @@ bool tics::pga_raycast(const Terathon::Motor3D &model_motor, const MeshCollider 
 			mesh_collider.indices.at(triangle_index * 3 + 1),
 			mesh_collider.indices.at(triangle_index * 3 + 2),
 		};
-		const gm::Vector3 vertices [3] = {
+		const Terathon::Vector3D vertices [3] = {
 			mesh_collider.positions.at(indices[0]),
 			mesh_collider.positions.at(indices[1]),
 			mesh_collider.positions.at(indices[2]),
 		};
 
-		auto a = Terathon::Transform( Terathon::Point3D(vertices[0].x, vertices[0].y, vertices[0].z), model_motor );
-		auto b = Terathon::Transform( Terathon::Point3D(vertices[1].x, vertices[1].y, vertices[1].z), model_motor );
-		auto c = Terathon::Transform( Terathon::Point3D(vertices[2].x, vertices[2].y, vertices[2].z), model_motor );
+		auto a = Terathon::Transform( Terathon::Point3D(vertices[0]), model_motor );
+		auto b = Terathon::Transform( Terathon::Point3D(vertices[1]), model_motor );
+		auto c = Terathon::Transform( Terathon::Point3D(vertices[2]), model_motor );
 
 		std::cout << "pga a: " << vec_to_str(a) << std::endl;
 		std::cout << "pga b: " << vec_to_str(b) << std::endl;
@@ -81,15 +82,15 @@ bool tics::raycast(const Terathon::Transform3D &model_mat, const MeshCollider &m
 			mesh_collider.indices.at(triangle_index * 3 + 1),
 			mesh_collider.indices.at(triangle_index * 3 + 2),
 		};
-		gm::Vector3 vertices [3] = {
+		Terathon::Vector3D vertices [3] = {
 			mesh_collider.positions.at(indices[0]),
 			mesh_collider.positions.at(indices[1]),
 			mesh_collider.positions.at(indices[2]),
 		};
 
-		auto a = model_mat * Terathon::Point3D(vertices[0].x, vertices[0].y, vertices[0].z);
-		auto b = model_mat * Terathon::Point3D(vertices[1].x, vertices[1].y, vertices[1].z);
-		auto c = model_mat * Terathon::Point3D(vertices[2].x, vertices[2].y, vertices[2].z);
+		auto a = model_mat * Terathon::Point3D(vertices[0]);
+		auto b = model_mat * Terathon::Point3D(vertices[1]);
+		auto c = model_mat * Terathon::Point3D(vertices[2]);
 
 		// Let l be a line containing the point ray_start and running parallel to the direction vector direction
 
