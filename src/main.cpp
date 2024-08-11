@@ -379,9 +379,12 @@ void process(GLFWwindow* window, ProgramState& state) {
 	const auto time_since_start_s = time_since_start.count() / 1000000000.0;
 	const auto cos_time = cos( 2 * time_since_start_s );
 
+	const auto target_glm = state.camera_controls.get_target();
+	
 	auto glm_model_mat = state.raycast_target.mesh_node->get_model_matrix();
-	glm_model_mat[3][0] = cos_time * 0.5;
-	glm_model_mat[3][1] = cos_time * 0.5;
+	glm_model_mat[3][0] = target_glm.x + cos_time * 0.5;
+	glm_model_mat[3][1] = target_glm.y + cos_time * 0.5;
+	glm_model_mat[3][2] = target_glm.z;
 	state.raycast_target.mesh_node->set_model_matrix(glm_model_mat);
 	const auto model_mat = Terathon::Transform3D(
 		glm_model_mat[0][0], glm_model_mat[1][0], glm_model_mat[2][0], glm_model_mat[3][0],
@@ -392,8 +395,9 @@ void process(GLFWwindow* window, ProgramState& state) {
 	model_motor.SetTransformMatrix(model_mat);
 
 	auto glm_model_mat_2 = state.raycast_target_2.mesh_node->get_model_matrix();
-	glm_model_mat_2[3][0] = cos_time * 0.5;
-	glm_model_mat_2[3][1] = cos_time * 0.5;
+	glm_model_mat_2[3][0] = target_glm.x + cos_time * 0.5;
+	glm_model_mat_2[3][1] = target_glm.y + cos_time * 0.5;
+	glm_model_mat_2[3][2] = target_glm.z;
 	state.raycast_target_2.mesh_node->set_model_matrix(glm_model_mat_2);
 	const auto model_mat_2 = Terathon::Transform3D(
 		glm_model_mat_2[0][0], glm_model_mat_2[1][0], glm_model_mat_2[2][0], glm_model_mat_2[3][0],
@@ -409,20 +413,30 @@ void process(GLFWwindow* window, ProgramState& state) {
 
 	// intersect only one triangle test
 	{
-		const auto target_glm = state.camera_controls.get_target() + glm::vec3(0.0, 0.0, 0.0);
-		const auto target = Terathon::Point3D(target_glm.x, target_glm.y, target_glm.z);
+		auto target = Terathon::Point3D(target_glm.x, target_glm.y, target_glm.z);
+
+		const auto direction = Terathon::Normalize( target - Terathon::Point3D(cam_pos_glm.x, cam_pos_glm.y, cam_pos_glm.z) );
+		target = cam_pos + direction;
 
 		const bool pga_raycast_1_hit = tics::pga_raycast(model_motor, *state.raycast_target.collider, cam_pos, target);
 		const bool pga_raycast_2_hit = tics::pga_raycast(model_motor_2, *state.raycast_target_2.collider, cam_pos, target);
-
-		const auto direction = target - Terathon::Point3D(cam_pos_glm.x, cam_pos_glm.y, cam_pos_glm.z);
 
 		const bool raycast_1_hit = tics::raycast(model_mat, *state.raycast_target.collider, cam_pos, direction);
 		const bool raycast_2_hit = tics::raycast(model_mat_2, *state.raycast_target_2.collider, cam_pos, direction);
 
 		std::cout << "    raycast_hit: " << raycast_1_hit << ", " << raycast_2_hit << std::endl;
+		// assert(raycast_1_hit || raycast_2_hit);
+		static int raycast_fail = 0;
+		if (!(raycast_1_hit || raycast_2_hit)) {
+			raycast_fail++;
+		}
 		std::cout << "pga_raycast_hit: " << pga_raycast_1_hit << ", " << pga_raycast_2_hit << std::endl;
-		std::cout << "********************" << std::endl;
+		// assert(pga_raycast_1_hit || pga_raycast_2_hit);
+		static int pga_raycast_fail = 0;
+		if (!(pga_raycast_1_hit || pga_raycast_2_hit)) {
+			pga_raycast_fail++;
+		}
+		std::cout << "***** conventional " << raycast_fail << ":" << pga_raycast_fail << " pga *****" << std::endl;
 	}
 
 	// performance measuring
@@ -436,7 +450,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 		// suzanne_high_res.glb: : ~ 274 ms (+184 ms)
 		const auto cam_target_glm = state.camera_controls.get_target();
 		const auto cam_target = Terathon::Point3D(cam_target_glm.x, cam_target_glm.y, cam_target_glm.z);
-		const bool pga_raycast_hit = tics::pga_raycast(model_motor, *state.raycast_target.collider, cam_pos, cam_target);
+		// const bool pga_raycast_hit = tics::pga_raycast(model_motor, *state.raycast_target.collider, cam_pos, cam_target);
 		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - start_time_point;
 		raycast_times.push_back(ray_cast_time);
 	} else {

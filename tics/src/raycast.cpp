@@ -10,6 +10,12 @@
 #include <TSMatrix4D.h>
 #include <TSMotor3D.h>
 
+static std::string vec_to_str(Terathon::Vector3D v) {
+	std::stringstream stream;
+	stream << "{ " << v.x << ", " << v.y << ", " << v.z << " }";
+	return stream.str();
+}
+
 bool tics::pga_raycast(const Terathon::Motor3D &model_motor, const MeshCollider &mesh_collider, const Terathon::Point3D p, const Terathon::Point3D q) {
 	for (size_t triangle_index = 0; triangle_index < mesh_collider.indices.size() / 3; triangle_index++) {
 		const uint32_t indices [3] = {
@@ -27,6 +33,10 @@ bool tics::pga_raycast(const Terathon::Motor3D &model_motor, const MeshCollider 
 		auto b = Terathon::Transform( Terathon::Point3D(vertices[1].x, vertices[1].y, vertices[1].z), model_motor );
 		auto c = Terathon::Transform( Terathon::Point3D(vertices[2].x, vertices[2].y, vertices[2].z), model_motor );
 
+		std::cout << "pga a: " << vec_to_str(a) << std::endl;
+		std::cout << "pga b: " << vec_to_str(b) << std::endl;
+		std::cout << "pga c: " << vec_to_str(c) << std::endl;
+
 		auto l = Terathon::Wedge(p, q);
 
 		// Translate the line by subtracting (l.v cross a) from its moment l.m
@@ -40,21 +50,25 @@ bool tics::pga_raycast(const Terathon::Motor3D &model_motor, const MeshCollider 
 		c -= a;
 		a = Terathon::Point3D(0.0f, 0.0f, 0.0f);
 
-		// Lines representing the edges of the triangle
-		const auto k_1 = Terathon::Wedge(a, b);
-		const auto k_2 = Terathon::Wedge(b, c);
-		const auto k_3 = Terathon::Wedge(c, a);
+		std::cout << "pga a_translated: " << vec_to_str(a) << std::endl;
+		std::cout << "pga b_translated: " << vec_to_str(b) << std::endl;
+		std::cout << "pga c_translated: " << vec_to_str(c) << std::endl;
 
+		// Lines representing the edges of the triangle
+		const auto k_1 = Terathon::Line3D(b, Terathon::Bivector3D(0.0f, 0.0f, 0.0f));
+		const auto k_2 = Terathon::Wedge(b, c);
+		const auto k_3 = Terathon::Line3D(-c, Terathon::Bivector3D(0.0f, 0.0f, 0.0f));
+
+		std::cout << "Antiwedge(l, k_1): " << Antiwedge(l, k_1) << std::endl;
+		std::cout << "Antiwedge(l, k_2): " << Antiwedge(l, k_2) << std::endl;
+		std::cout << "Antiwedge(l, k_3): " << Antiwedge(l, k_3) << std::endl;
 		// If any of the Antiwedge products is negative, then the line does not intersect the triangle.
-		const auto any_negative =
+
+		return !(
 			Terathon::Antiwedge(l, k_1) < 0 ||
 			Terathon::Antiwedge(l, k_2) < 0 ||
-			Terathon::Antiwedge(l, k_3) < 0;
-
-		// Otherwise, we have a hit.
-		if (!any_negative) {
-			return true;
-		}
+			Terathon::Antiwedge(l, k_3) < 0
+		);
 	}
 
 	return false;
@@ -79,28 +93,44 @@ bool tics::raycast(const Terathon::Transform3D &model_mat, const MeshCollider &m
 
 		// Let l be a line containing the point ray_start and running parallel to the direction vector direction
 
-		// Translate the line so that ray_start coincides with the origin.
-		// Translate the triangle by subtracting ray_start from the vertices
+		Terathon::Vector4D plane;
+		plane.xyz = Terathon::Cross( (b-a), (c-a) );
+		plane.w = Terathon::Dot( -plane.xyz, a - ray_start );
 
-		a -= ray_start;
-		b -= ray_start;
-		c -= ray_start;
+		// find the point of intersection q
+		Terathon::Vector3D q =
+			ray_start +
+			( -plane.w / Terathon::Dot(plane.xyz, direction) ) * direction;
 
-		// Calculate the scalar triple products (a x b) dot direction, (b x c) dot direction, (c x a) dot direction
-		// If any of these products is positive, then the line does not intersect the triangle.
+		a -= q;
+		b -= q;
+		c -= q;
+		q = Terathon::Vector3D(0.0f, 0.0f, 0.0f);
 
-		const auto scalar_triple_product_ab = Terathon::Dot( Terathon::Cross(a, b), direction );
-		const auto scalar_triple_product_bc = Terathon::Dot( Terathon::Cross(b, c), direction );
-		const auto scalar_triple_product_ca = Terathon::Dot( Terathon::Cross(c, a), direction );
+		// edge 0
+		const Terathon::Vector3D edge0 = b - a;
+		const Terathon::Vector3D aq = q - a;
+		const auto scalar_triple_product_edge0_aq = Terathon::Dot( plane.xyz * plane.w, Terathon::Cross(edge0, aq) );
 
-		const auto any_positive =
-			scalar_triple_product_ab > 0 ||
-			scalar_triple_product_bc > 0 ||
-			scalar_triple_product_ca > 0;
+		// edge 1
+		const Terathon::Vector3D edge1 = c - b;
+		const Terathon::Vector3D bq = q - b;
+		const auto scalar_triple_product_edge1_bq = Terathon::Dot( plane.xyz * plane.w, Terathon::Cross(edge1, bq) );
 
-		if (!any_positive) {
-			return true;
-		}
+		// edge 2
+		const Terathon::Vector3D edge2 = a - c;
+		const Terathon::Vector3D cq = q - c;
+		const auto scalar_triple_product_edge2_cq = Terathon::Dot( plane.xyz * plane.w, Terathon::Cross(edge2, cq) );
+
+		std::cout << "scalar_triple_product_edge0_aq: " << scalar_triple_product_edge0_aq << std::endl;
+		std::cout << "scalar_triple_product_edge1_bq: " << scalar_triple_product_edge1_bq << std::endl;
+		std::cout << "scalar_triple_product_edge2_cq: " << scalar_triple_product_edge2_cq << std::endl;
+
+		return !(
+			scalar_triple_product_edge0_aq < 0 ||
+			scalar_triple_product_edge1_bq < 0 ||
+			scalar_triple_product_edge2_cq < 0
+		);
 	}
 
 	return false;
