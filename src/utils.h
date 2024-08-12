@@ -83,27 +83,29 @@ Sphere create_sphere(
 	sphere.rigid_body->angular_velocity = angular_velocity;
 	sphere.color = color;
 
-	// apply scale to mesh
+	// apply scale to visual mesh
 	for (auto &section : sphere.mesh_node->get_mesh()->sections) {
 		for (auto &position : section.geometry->positions) {
 			position *= scale;
 		}
 	}
-
 	// copy the default material and modify it
 	const auto material = std::make_shared<ron::Material>(*scene.default_material);
 	material->uniforms["albedo_color"] = ron::make_uniform(glm::vec4(color, 1.0));
-
 	// copy the mesh node to set its color
 	const auto cloned_mesh_node = std::make_shared<ron::MeshNode>(
 		std::make_shared<ron::Mesh>(*sphere.mesh_node->get_mesh()),
 		transform_to_model_matrix(*sphere.transform)
 	);
 	cloned_mesh_node->get_mesh()->sections.front().material = material;
-
 	sphere.mesh_node = cloned_mesh_node;
 
-	const auto geometry = sphere.mesh_node->get_mesh()->sections.front().geometry;
+	const auto geometry = ron::gltf::import("models/icosphere_lowres_smooth.glb").get_mesh_nodes()
+		.front()->get_mesh()->sections.front().geometry;
+	// apply scale to collision mesh
+	for (auto &position : geometry->positions) {
+		position *= scale;
+	}
 	// copy positions and inidices to MeshCollider
 	sphere.collider->indices = geometry->indices;
 	for (const auto &vertex_pos : geometry->positions) {

@@ -184,7 +184,7 @@ ProgramState initialize(GLFWwindow* window) {
 		std::make_shared<tics::CollisionArea>(),
 		std::make_shared<tics::Transform>(),
 		std::make_shared<tics::MeshCollider>(),
-		ron::gltf::import("models/icosphere_lowres.glb").get_mesh_nodes().front()
+		ron::gltf::import("models/flat_icosphere.glb").get_mesh_nodes().front()
 	};
 	area_trigger.area->set_collider(area_trigger.collider);
 	area_trigger.area->set_transform(area_trigger.transform);

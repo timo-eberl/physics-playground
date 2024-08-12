@@ -197,6 +197,7 @@ CollisionPoints collision_test_mesh_mesh(
 	// FIXME: probably the normalize can be removed?
 	d = Terathon::Normalize ( Terathon::Cross ( Terathon::Cross (AB, AO), AB ) );
 
+	
 	// find the third support point
 	while (true) {
 		simplex[2] = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
@@ -253,7 +254,9 @@ CollisionPoints collision_test_mesh_mesh(
 	}
 
 	// find the fourth (last) support point
-	while (true) {
+	// only iterate a limited number of times to work around being stuck in a loop
+	for (size_t i = 0; i < 100; i++) {
+	// while (true) {
 		simplex[3] = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
 
 		const auto fkdasjl = Terathon::Dot(simplex[3], d);
@@ -452,6 +455,8 @@ CollisionPoints collision_test_mesh_mesh(
 			return collision_points;
 		}
 	}
+	std::cout << "Terminating GJK (stuck in a loop)\n";
+	return CollisionPoints(); // workaround
 }
 
 // define the function type for a collision test function
