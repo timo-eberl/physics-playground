@@ -328,9 +328,7 @@ CollisionPoints collision_test_mesh_mesh(
 				Terathon::Vector3D c = polytope_positions[polytope_indices[i * 3 + 2]];
 
 				const auto normal = Terathon::Normalize( Terathon::Cross(b - a, c - a) );
-				const double distance = Terathon::Dot(normal, a);
-				const double distanceb = Terathon::Dot(normal, b);
-				const double distancec = Terathon::Dot(normal, c);
+				const double distance = Terathon::Dot(normal, a); // works with any vertex of the plane
 
 				polytope_normals.emplace_back(normal, distance);
 
@@ -357,7 +355,6 @@ CollisionPoints collision_test_mesh_mesh(
 				// and create new faces afterwards
 
 				std::vector<std::pair<uint32_t, uint32_t>> unique_edges;
-				std::vector<size_t> to_be_removed;
 
 				for (size_t i = 0; i < polytope_indices.size() / 3; i++) {
 					// check if the support point is in front of the triangle
@@ -367,7 +364,6 @@ CollisionPoints collision_test_mesh_mesh(
 						add_if_unique_edge(unique_edges, polytope_indices, polytope_indices[i*3 + 1], polytope_indices[i*3 + 2]);
 						add_if_unique_edge(unique_edges, polytope_indices, polytope_indices[i*3 + 2], polytope_indices[i*3    ]);
 
-						// to_be_removed.push_back(i);
 						polytope_indices.erase(polytope_indices.begin() + i*3, polytope_indices.begin() + i*3 + 3);
 						polytope_normals.erase(polytope_normals.begin() + i);
 
@@ -414,6 +410,36 @@ CollisionPoints collision_test_mesh_mesh(
 
 			collision_points.normal = -polytope_normals[closest_index].xyz;
 			collision_points.depth = closest_distance;
+
+			// find orthogonal vector to normal vector
+			auto not_parallel_to_normal = Terathon::Vector3D(0,0,1);
+			if (Terathon::Dot(collision_points.normal, not_parallel_to_normal) > 0.9) {
+				not_parallel_to_normal = Terathon::Vector3D(0,1,0);
+			}
+			const auto orthogonal_to_normal = Terathon::Cross(not_parallel_to_normal, collision_points.normal);
+
+			// hacky way to find penetration points, works badly if two edges collide
+			// we want to find out which one of the objects is "poking" into the other
+			// choose similar vectors to the normal and look for the support point, for both a and b
+			// collision_points.normal points from b to a
+			const auto b0 = support_point_mesh(b_collider, tb,  collision_points.normal - orthogonal_to_normal*0.01);
+			const auto b1 = support_point_mesh(b_collider, tb,  collision_points.normal + orthogonal_to_normal*0.01);
+			const auto b_dist = Terathon::Magnitude(b0-b1);
+			const auto a0 = support_point_mesh(a_collider, ta, -collision_points.normal - orthogonal_to_normal*0.01);
+			const auto a1 = support_point_mesh(a_collider, ta, -collision_points.normal + orthogonal_to_normal*0.01);
+			const auto a_dist = Terathon::Magnitude(a0-a1);
+			if (a_dist < b_dist) {
+				// a is poking into b
+				const auto a = support_point_mesh(a_collider, ta, -collision_points.normal);
+				collision_points.a = a;
+				collision_points.b = a - (collision_points.normal * collision_points.depth);
+			}
+			else {
+				// b is poking into a
+				const auto b = support_point_mesh(b_collider, tb, collision_points.normal);
+				collision_points.b = b;
+				collision_points.a = b + (collision_points.normal * collision_points.depth);
+			}
 
 			return collision_points;
 		}

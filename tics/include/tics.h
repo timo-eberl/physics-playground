@@ -57,7 +57,10 @@ bool raycast(
 
 struct CollisionPoints {
 	// a and b are the points where each shape penetrates the other most
-	// b - a is the penetration vector
+	// a is the point on object a that is farthest in b
+	// the penetration vector points from b to a
+	Terathon::Vector3D a;
+	Terathon::Vector3D b;
 	Terathon::Vector3D normal; //penetration vector direction
 	float depth; // penetration vector length
 	bool has_collision = false;
@@ -125,7 +128,7 @@ public:
 	virtual void set_transform(const std::weak_ptr<Transform> transform) override;
 	virtual std::weak_ptr<Transform> get_transform() const override;
 
-	std::function<void(const std::weak_ptr<ICollisionObject> other)> on_collision_enter;
+	std::function<void(const std::weak_ptr<ICollisionObject> other, CollisionPoints collision_data)> on_collision_enter;
 	std::function<void(const std::weak_ptr<ICollisionObject> other)> on_collision_exit;
 private:
 	std::weak_ptr<Collider> m_collider;
@@ -180,13 +183,19 @@ public:
 	virtual void solve(std::vector<Collision>& collisions, float delta) override;
 };
 
+struct ObjectAndCollisionData {
+	std::weak_ptr<ICollisionObject> object;
+	CollisionPoints collision_points;
+	bool collision_points_swapped;
+};
+
 class CollisionAreaSolver : public ISolver {
 public:
 	~CollisionAreaSolver() {};
 
 	virtual void solve(std::vector<Collision>& collisions, float delta) override;
 private:
-	typedef std::map<CollisionArea *, std::vector<std::weak_ptr<ICollisionObject>>>
+	typedef std::map< CollisionArea *, std::vector<ObjectAndCollisionData> >
 		AreasCollisionRecord;
 
 	AreasCollisionRecord m_areas_collision_record = {};

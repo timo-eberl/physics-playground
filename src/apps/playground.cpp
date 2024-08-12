@@ -41,12 +41,10 @@ struct ProgramState {
 	std::shared_ptr<std::vector<Sphere>> spheres;
 	std::shared_ptr<std::vector<StaticObject>> static_geometry;
 	AreaTrigger area_trigger;
-	RaycastTarget raycast_target;
-	RaycastTarget raycast_target_2;
 
 	ron::PerspectiveCamera camera;
 	ron::CameraViewportControls camera_controls;
-	ron::Scene render_scene;
+	std::shared_ptr<ron::Scene> render_scene;
 	std::unique_ptr<ron::OpenGLRenderer> renderer;
 
 	tics::World physics_world;
@@ -148,8 +146,8 @@ int main() {
 
 ProgramState initialize(GLFWwindow* window) {
 	// renderer setup
-	auto scene = ron::Scene();
-	scene.set_directional_light(create_generic_light());
+	auto scene = std::make_shared<ron::Scene>();
+	scene->set_directional_light(create_generic_light());
 	auto renderer = std::make_unique<ron::OpenGLRenderer>(1280, 720);
 	renderer->set_clear_color(glm::vec4(0.1, 0.1, 0.1, 1.0));
 	// camera setup
@@ -164,17 +162,17 @@ ProgramState initialize(GLFWwindow* window) {
 
 	// initial sphere
 	auto sphere_1 = create_sphere(
-		Terathon::Vector3D(0.0, 1.5, 0.25), Terathon::Vector3D(0.0, 8.0, 0.0), scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
+		Terathon::Vector3D(0.0, 1.5, 0.25), Terathon::Vector3D(0.0, 8.0, 0.0), *scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
 	);
-	// spheres->emplace_back(sphere_1);
-	// physics_world.add_object(sphere_1.rigid_body);
-	// scene.add(sphere_1.mesh_node);
+	spheres->emplace_back(sphere_1);
+	physics_world.add_object(sphere_1.rigid_body);
+	scene->add(sphere_1.mesh_node);
 
 	// add static geometry
 	auto static_geometry = create_static_objects("models/ground.glb");
 	for (const auto &static_object : *static_geometry) {
 		physics_world.add_object(static_object.static_body);
-		scene.add(static_object.mesh_node);
+		scene->add(static_object.mesh_node);
 	}
 
 	// area trigger that turns objects red that are inside it
@@ -186,7 +184,12 @@ ProgramState initialize(GLFWwindow* window) {
 	};
 	area_trigger.area->set_collider(area_trigger.collider);
 	area_trigger.area->set_transform(area_trigger.transform);
-	area_trigger.area->on_collision_enter = [spheres](const auto &other) {
+	area_trigger.area->on_collision_enter = [spheres, scene](const auto &other, const auto &collision_data) {
+		std::cout << "collision_data: normal: {"
+			<< collision_data.normal.x << "," << collision_data.normal.y << "," << collision_data.normal.z << "}"
+			<< " depth: " << collision_data.depth << "\n";
+		const auto debug_sphere = create_sphere(collision_data.a, Terathon::Vector3D(0,0,0), *scene, {1,1,0}, 0.1);
+		scene->add(debug_sphere.mesh_node);
 		for (const auto &sphere : *spheres) {
 			if (sphere.rigid_body == other.lock()) {
 				sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"]
@@ -217,33 +220,7 @@ ProgramState initialize(GLFWwindow* window) {
 		area_trigger.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
 	}
 	physics_world.add_object(area_trigger.area);
-	scene.add(area_trigger.mesh_node);
-
-	// raycasting setup - first target
-	RaycastTarget raycast_target = {
-		std::make_shared<tics::MeshCollider>(),
-		ron::gltf::import("models/triangle_0.glb").get_mesh_nodes().front()
-	};
-	const auto raycast_target_geometry = raycast_target.mesh_node->get_mesh()->sections.front().geometry;
-	// copy positions and inidices to MeshCollider
-	raycast_target.collider->indices = raycast_target_geometry->indices;
-	for (const auto &vertex_pos : raycast_target_geometry->positions) {
-		raycast_target.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
-	}
-	scene.add(raycast_target.mesh_node);
-
-	// raycasting setup - second target
-	RaycastTarget raycast_target_2 = {
-		std::make_shared<tics::MeshCollider>(),
-		ron::gltf::import("models/triangle_1.glb").get_mesh_nodes().front()
-	};
-	const auto raycast_target_2_geometry = raycast_target_2.mesh_node->get_mesh()->sections.front().geometry;
-	// copy positions and inidices to MeshCollider
-	raycast_target_2.collider->indices = raycast_target_2_geometry->indices;
-	for (const auto &vertex_pos : raycast_target_2_geometry->positions) {
-		raycast_target_2.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
-	}
-	scene.add(raycast_target_2.mesh_node);
+	scene->add(area_trigger.mesh_node);
 
 	// applies forces
 	auto impulse_solver = std::make_shared<tics::ImpulseSolver>();
@@ -255,7 +232,7 @@ ProgramState initialize(GLFWwindow* window) {
 	physics_world.add_solver(position_solver);
 	physics_world.add_solver(collision_area_solver);
 
-	renderer->preload(scene);
+	renderer->preload(*scene);
 
 	glfwSetScrollCallback(window, scroll_callback);
 
@@ -264,8 +241,6 @@ ProgramState initialize(GLFWwindow* window) {
 		spheres,
 		static_geometry,
 		area_trigger,
-		raycast_target,
-		raycast_target_2,
 		ron::PerspectiveCamera(60.0f, 1280.0f/720.0f, 0.1f, 1000.0f),
 		camera_controls,
 		scene,
@@ -287,109 +262,6 @@ void process(GLFWwindow* window, ProgramState& state) {
 
 	auto start_time_point = std::chrono::high_resolution_clock::now();
 
-	static std::vector<std::chrono::nanoseconds> raycast_times;
-	const auto pga = true;
-
-	const auto time_since_start = std::chrono::high_resolution_clock::now() - state.start_time_point;
-	const auto time_since_start_s = time_since_start.count() / 1000000000.0;
-	const auto cos_time = cos( 2 * time_since_start_s );
-
-	const auto target_glm = state.camera_controls.get_target();
-	
-	auto glm_model_mat = state.raycast_target.mesh_node->get_model_matrix();
-	glm_model_mat[3][0] = target_glm.x + cos_time * 0.5;
-	glm_model_mat[3][1] = target_glm.y + cos_time * 0.5;
-	glm_model_mat[3][2] = target_glm.z;
-	state.raycast_target.mesh_node->set_model_matrix(glm_model_mat);
-	const auto model_mat = Terathon::Transform3D(
-		glm_model_mat[0][0], glm_model_mat[1][0], glm_model_mat[2][0], glm_model_mat[3][0],
-		glm_model_mat[0][1], glm_model_mat[1][1], glm_model_mat[2][1], glm_model_mat[3][1],
-		glm_model_mat[0][2], glm_model_mat[1][2], glm_model_mat[2][2], glm_model_mat[3][2]
-	);
-	auto model_motor = Terathon::Motor3D();
-	model_motor.SetTransformMatrix(model_mat);
-
-	auto glm_model_mat_2 = state.raycast_target_2.mesh_node->get_model_matrix();
-	glm_model_mat_2[3][0] = target_glm.x + cos_time * 0.5;
-	glm_model_mat_2[3][1] = target_glm.y + cos_time * 0.5;
-	glm_model_mat_2[3][2] = target_glm.z;
-	state.raycast_target_2.mesh_node->set_model_matrix(glm_model_mat_2);
-	const auto model_mat_2 = Terathon::Transform3D(
-		glm_model_mat_2[0][0], glm_model_mat_2[1][0], glm_model_mat_2[2][0], glm_model_mat_2[3][0],
-		glm_model_mat_2[0][1], glm_model_mat_2[1][1], glm_model_mat_2[2][1], glm_model_mat_2[3][1],
-		glm_model_mat_2[0][2], glm_model_mat_2[1][2], glm_model_mat_2[2][2], glm_model_mat_2[3][2]
-	);
-	auto model_motor_2 = Terathon::Motor3D();
-	model_motor_2.SetTransformMatrix(model_mat_2);
-
-	const auto cam_model_matrix = state.camera.get_model_matrix();
-	const auto cam_pos_glm = cam_model_matrix * glm::vec4(0,0,0,1);
-	const auto cam_pos = Terathon::Point3D(cam_pos_glm.x, cam_pos_glm.y, cam_pos_glm.z);
-
-	// intersect only one triangle test
-	{
-		auto target = Terathon::Point3D(target_glm.x, target_glm.y, target_glm.z);
-
-		const auto direction = Terathon::Normalize( target - Terathon::Point3D(cam_pos_glm.x, cam_pos_glm.y, cam_pos_glm.z) );
-		target = cam_pos + direction;
-
-		const bool pga_raycast_1_hit = tics::pga_raycast(model_motor, *state.raycast_target.collider, cam_pos, target);
-		const bool pga_raycast_2_hit = tics::pga_raycast(model_motor_2, *state.raycast_target_2.collider, cam_pos, target);
-
-		const bool raycast_1_hit = tics::raycast(model_mat, *state.raycast_target.collider, cam_pos, direction);
-		const bool raycast_2_hit = tics::raycast(model_mat_2, *state.raycast_target_2.collider, cam_pos, direction);
-
-		std::cout << "    raycast_hit: " << raycast_1_hit << ", " << raycast_2_hit << std::endl;
-		// assert(raycast_1_hit || raycast_2_hit);
-		static int raycast_fail = 0;
-		if (!(raycast_1_hit || raycast_2_hit)) {
-			raycast_fail++;
-		}
-		std::cout << "pga_raycast_hit: " << pga_raycast_1_hit << ", " << pga_raycast_2_hit << std::endl;
-		// assert(pga_raycast_1_hit || pga_raycast_2_hit);
-		static int pga_raycast_fail = 0;
-		if (!(pga_raycast_1_hit || pga_raycast_2_hit)) {
-			pga_raycast_fail++;
-		}
-		std::cout << "***** conventional " << raycast_fail << ":" << pga_raycast_fail << " pga *****" << std::endl;
-	}
-
-	// performance measuring
-	if (pga) {
-		// without transform:
-		// suzanne.glb: ~ 0.50 ms
-		// suzanne_high_res.glb: : ~ 90 ms
-
-		// with transform:
-		// suzanne.glb: ~ 1.21 ms (+0.71 ms)
-		// suzanne_high_res.glb: : ~ 274 ms (+184 ms)
-		const auto cam_target_glm = state.camera_controls.get_target();
-		const auto cam_target = Terathon::Point3D(cam_target_glm.x, cam_target_glm.y, cam_target_glm.z);
-		// const bool pga_raycast_hit = tics::pga_raycast(model_motor, *state.raycast_target.collider, cam_pos, cam_target);
-		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - start_time_point;
-		raycast_times.push_back(ray_cast_time);
-	} else {
-		// without transform:
-		// suzanne.glb: ~ 0.33 ms
-		// suzanne_high_res.glb: ~ 53 ms
-
-		// with transform:
-		// suzanne.glb: ~ 0.75 ms (+0.42 ms)
-		// suzanne_high_res.glb: : ~ 140 ms (+87 ms)
-		const auto target_pos_glm = cam_model_matrix * glm::vec4(0,0,-1,1);
-		const auto direction_glm = target_pos_glm - cam_pos_glm;
-		const auto direction = Terathon::Vector3D(direction_glm.x, direction_glm.y, direction_glm.z);
-
-		const bool raycast_hit = tics::raycast(model_mat, *state.raycast_target.collider, cam_pos, direction);
-		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - start_time_point;
-		raycast_times.push_back(ray_cast_time);
-	}
-	std::chrono::nanoseconds total = 0ns;
-	for (const auto &t : raycast_times) {
-		total += t;
-	}
-	// std::cout << "avg time: " << total / raycast_times.size() << "\n";
-
 	// create spheres with random size and color
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT == GLFW_PRESS)) {
 		const float size = 0.5 + 0.5 * static_cast<double>(std::rand()) / RAND_MAX;
@@ -404,7 +276,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 				(    static_cast<double>(std::rand()) / RAND_MAX)*5,
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5
 			),
-			state.render_scene,
+			*(state.render_scene),
 			glm::vec3( // color
 				static_cast<double>(std::rand()) / RAND_MAX,
 				static_cast<double>(std::rand()) / RAND_MAX,
@@ -414,10 +286,10 @@ void process(GLFWwindow* window, ProgramState& state) {
 		);
 		state.spheres->emplace_back(sphere);
 		state.physics_world.add_object(sphere.rigid_body);
-		state.render_scene.add(sphere.mesh_node);
+		state.render_scene->add(sphere.mesh_node);
 	}
 
-	float time_scale = 1.0f;
+	float time_scale = 0.1f;
 	state.physics_world.update(time_scale/60.0f);
 
 	const auto physics_time = std::chrono::high_resolution_clock::now() - start_time_point;
@@ -434,7 +306,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 void render(GLFWwindow* window, ProgramState& state) {
 	auto start_time_point = std::chrono::high_resolution_clock::now();
 
-	state.renderer->render(state.render_scene, state.camera);
+	state.renderer->render(*(state.render_scene), state.camera);
 
 	const auto render_time = std::chrono::high_resolution_clock::now() - start_time_point;
 	++accumulated_render_time_count;
