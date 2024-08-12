@@ -109,6 +109,7 @@ public:
 	virtual std::weak_ptr<Transform> get_transform() const override;
 
 	Terathon::Vector3D velocity = Terathon::Vector3D(0,0,0);
+	Terathon::Quaternion angular_velocity = Terathon::Quaternion(1);
 
 	// reset and accumulated every update
 	Terathon::Vector3D force = Terathon::Vector3D(0,0,0);

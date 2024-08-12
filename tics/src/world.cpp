@@ -43,7 +43,12 @@ void World::update(const float delta) {
 			assert(rigid_body->mass != 0.0f);
 			auto acceleration = rigid_body->force / rigid_body->mass;
 			rigid_body->velocity += acceleration * delta;
-			rigid_body->get_transform().lock()->position += rigid_body->velocity * delta;
+
+			const auto &transform = rigid_body->get_transform().lock();
+			transform->position += rigid_body->velocity * delta;
+			transform->rotation *= rigid_body->angular_velocity;
+
+			const auto q = Terathon::Quaternion(1) * Terathon::Quaternion(1);
 
 			rigid_body->force = Terathon::Vector3D(0,0,0);
 		}

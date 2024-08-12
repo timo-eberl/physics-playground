@@ -163,7 +163,9 @@ ProgramState initialize(GLFWwindow* window) {
 
 	// initial sphere
 	auto sphere_1 = create_sphere(
-		Terathon::Vector3D(0.0, 1.5, 0.25), Terathon::Vector3D(0.0, 8.0, 0.0), *scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
+		Terathon::Vector3D(0.0, 1.5, 0.25), Terathon::Vector3D(0.0, 8.0, 0.0),
+		Terathon::Quaternion::MakeRotationZ(3.141 * 0.25 * 1.0/60.0),
+		*scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
 	);
 	sphere_1.transform->rotation = Terathon::Quaternion::MakeRotationZ(3.141 * 0.25);
 	spheres->emplace_back(sphere_1);
@@ -190,8 +192,11 @@ ProgramState initialize(GLFWwindow* window) {
 		std::cout << "collision_data: normal: {"
 			<< collision_data.normal.x << "," << collision_data.normal.y << "," << collision_data.normal.z << "}"
 			<< " depth: " << collision_data.depth << "\n";
-		const auto debug_sphere = create_sphere(collision_data.a, Terathon::Vector3D(0,0,0), *scene, {1,1,0}, 0.1);
-		scene->add(debug_sphere.mesh_node);
+		// const auto debug_sphere = create_sphere(
+		// 	collision_data.a, Terathon::Vector3D(0,0,0),
+		// 	Terathon::Quaternion(1), *scene, {1,1,0}, 0.1
+		// );
+		// scene->add(debug_sphere.mesh_node);
 		for (const auto &sphere : *spheres) {
 			if (sphere.rigid_body == other.lock()) {
 				sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"]
@@ -278,6 +283,15 @@ void process(GLFWwindow* window, ProgramState& state) {
 				(    static_cast<double>(std::rand()) / RAND_MAX)*5,
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5
 			),
+			// angular velocity
+			Terathon::Quaternion::MakeRotation(
+				3.141 * 2 * static_cast<float>(std::rand()) / RAND_MAX * 1.0/60.0 * 0.2,
+				Terathon::Normalize(Terathon::Bivector3D(
+					static_cast<float>(std::rand()) / RAND_MAX,
+					static_cast<float>(std::rand()) / RAND_MAX,
+					static_cast<float>(std::rand()) / RAND_MAX
+				))
+			),
 			*(state.render_scene),
 			glm::vec3( // color
 				static_cast<double>(std::rand()) / RAND_MAX,
@@ -288,7 +302,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 		);
 		
 		sphere.transform->rotation = Terathon::Quaternion::MakeRotation(
-			141 * 2 * static_cast<float>(std::rand()) / RAND_MAX,
+			3.141 * 2 * static_cast<float>(std::rand()) / RAND_MAX,
 			Terathon::Normalize(Terathon::Bivector3D(
 				static_cast<float>(std::rand()) / RAND_MAX,
 				static_cast<float>(std::rand()) / RAND_MAX,
@@ -300,7 +314,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 		state.render_scene->add(sphere.mesh_node);
 	}
 
-	float time_scale = 0.5f;
+	float time_scale = 1.0f;
 	state.physics_world.update(time_scale/60.0f);
 
 	const auto physics_time = std::chrono::high_resolution_clock::now() - start_time_point;

@@ -32,7 +32,7 @@ Terathon::Vector3D support_point_mesh(
 
 	const auto &collider = static_cast<const MeshCollider&>(c);
 
-	const auto local_d = Terathon::Transform(d, Terathon::Inverse(t.rotation));
+	const auto local_d = Terathon::Transform(d, t.rotation);
 
 	// find the support point in local space
 	auto support_point_dot = -1.0;
@@ -48,7 +48,7 @@ Terathon::Vector3D support_point_mesh(
 	// this fails if the center position of a mesh is not inside the mesh
 	assert(support_point_dot >= 0.0);
 
-	support_point = Terathon::Transform(support_point, t.rotation);
+	support_point = Terathon::Transform(support_point, Terathon::Inverse(t.rotation));
 	support_point = support_point + t.position;
 
 	return support_point;
@@ -185,7 +185,7 @@ CollisionPoints collision_test_mesh_mesh(
 	// find the second support point
 	simplex[1] = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
 	// if the next support point did not "pass" the origin, the shapes do not intersect
-	if (Terathon::Dot(simplex[1], d) < 0) {
+	if (Terathon::Dot(simplex[1], d) < 0.001) {
 		return CollisionPoints();
 	}
 
@@ -202,7 +202,7 @@ CollisionPoints collision_test_mesh_mesh(
 		simplex[2] = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
 
 		// if the new support point did not "pass" the origin, the shapes do not intersect
-		if (Terathon::Dot(simplex[2], d) < 0) {
+		if (Terathon::Dot(simplex[2], d) < 0.001) {
 			return CollisionPoints();
 		}
 
@@ -256,8 +256,9 @@ CollisionPoints collision_test_mesh_mesh(
 	while (true) {
 		simplex[3] = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
 
+		const auto fkdasjl = Terathon::Dot(simplex[3], d);
 		// if the new support point did not "pass" the origin, the shapes do not intersect
-		if (Terathon::Dot(simplex[3], d) < 0) {
+		if (Terathon::Dot(simplex[3], d) < 0.001) {
 			return CollisionPoints();
 		}
 
@@ -271,20 +272,24 @@ CollisionPoints collision_test_mesh_mesh(
 		const auto AD = D - A;
 		const auto AO =   - A;
 
-		const auto ABC_normal = Terathon::Cross(AB, AC);
-		const auto ACD_normal = Terathon::Cross(AC, AD);
-		const auto ADB_normal = Terathon::Cross(AD, AB);
+		const auto ABC_normal = Terathon::Normalize( Terathon::Cross(AB, AC) );
+		const auto ACD_normal = Terathon::Normalize( Terathon::Cross(AC, AD) );
+		const auto ADB_normal = Terathon::Normalize( Terathon::Cross(AD, AB) );
+
+		const auto fasdkjfl1 = Terathon::Dot( ABC_normal, AO );
+		const auto fasdkjfl2 = Terathon::Dot( ACD_normal, AO );
+		const auto fasdkjfl3 = Terathon::Dot( ADB_normal, AO );
 
 		// Check in which region we are. Remove the vertex that is not part of that region
-		if (Terathon::Dot( ABC_normal, AO ) > 0) {
+		if (Terathon::Dot( ABC_normal, AO ) > 0.001) {
 			simplex[2] = A; simplex[1] = B; simplex[0] = C;
 			d = ABC_normal;
 		}
-		else if (Terathon::Dot( ACD_normal, AO ) > 0) {
+		else if (Terathon::Dot( ACD_normal, AO ) > 0.001) {
 			simplex[2] = A; simplex[1] = C; simplex[0] = D;
 			d = ACD_normal;
 		}
-		else if (Terathon::Dot( ADB_normal, AO ) > 0) {
+		else if (Terathon::Dot( ADB_normal, AO ) > 0.001) {
 			simplex[2] = A; simplex[1] = D; simplex[0] = B;
 			d = ADB_normal;
 		}
