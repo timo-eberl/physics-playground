@@ -164,7 +164,8 @@ ProgramState initialize(GLFWwindow* window) {
 	// initial sphere
 	auto sphere_1 = create_sphere(
 		Terathon::Vector3D(0.0, 1.5, 0.25), Terathon::Vector3D(0.0, 8.0, 0.0),
-		tics::AngularUnit( Terathon::Vector3D( 0,0,1 ), 3.141 * 0.2 ),
+		Terathon::Quaternion::identity,
+		// Terathon::Quaternion::MakeRotation(3.141 * 0.2, Terathon::Bivector3D( 0,0,1 )),
 		*scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
 	);
 	sphere_1.transform->rotation = Terathon::Quaternion::MakeRotationZ(3.141 * 0.25);
@@ -284,16 +285,17 @@ void process(GLFWwindow* window, ProgramState& state) {
 				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5
 			),
 			// angular velocity
-			tics::AngularUnit(
-				// axis
-				Terathon::Normalize(Terathon::Vector3D(
-					static_cast<float>(std::rand()) / RAND_MAX,
-					static_cast<float>(std::rand()) / RAND_MAX,
-					static_cast<float>(std::rand()) / RAND_MAX
-				)),
-				//angle
-				3.141 * 2 * static_cast<float>(std::rand()) / RAND_MAX * 0.2
-			),
+			Terathon::Quaternion::identity,
+			// Terathon::Quaternion::MakeRotation(
+			// 	//angle
+			// 	3.141 * 2 * static_cast<float>(std::rand()) / RAND_MAX * 0.2,
+			// 	// axis
+			// 	!Terathon::Normalize(Terathon::Vector3D(
+			// 		static_cast<float>(std::rand()) / RAND_MAX,
+			// 		static_cast<float>(std::rand()) / RAND_MAX,
+			// 		static_cast<float>(std::rand()) / RAND_MAX
+			// 	))
+			// ),
 			*(state.render_scene),
 			glm::vec3( // color
 				static_cast<double>(std::rand()) / RAND_MAX,

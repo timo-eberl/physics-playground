@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 
 using tics::World;
 
@@ -46,15 +47,31 @@ void World::update(const float delta) {
 			const auto &transform = rigid_body->get_transform().lock();
 			transform->position += rigid_body->velocity * delta;
 
-			const auto angular_impulse_quat = Terathon::Quaternion::MakeRotation(
-				rigid_body->angular_velocity.angle_radians * delta,
-				!(rigid_body->angular_velocity.axis)
+			// angular velocity is stored in meter / millisecond, because a quaternion
+			// using rad/s would only be able to store a maximum of 0.5 rotations per second
+
+			// constant angular impulse for testing
+			rigid_body->angular_impulse = Terathon::Quaternion::MakeRotation(
+				3.141 * 1.0 * delta * 0.001, !Terathon::Vector3D(0,0,1)
 			);
-			transform->rotation *= angular_impulse_quat; // "add" rotation change
+
+			// accelerate angular velocity by angular impulse
+			rigid_body->angular_velocity *= rigid_body->angular_impulse;
+
+			// "scale" velocity by delta to get angular impulse of current frame
+			auto angular_impulse = (
+				Terathon::Quaternion::identity * (1.0-delta*1000.0)
+				+ rigid_body->angular_velocity * delta*1000.0
+			);
+			angular_impulse.Normalize();
+
+			// "add" impulse
+			transform->rotation *= angular_impulse;
 
 			const auto q = Terathon::Quaternion(1) * Terathon::Quaternion(1);
 
 			rigid_body->impulse = Terathon::Vector3D(0,0,0);
+			rigid_body->angular_impulse = Terathon::Quaternion::identity;
 		}
 	}
 }

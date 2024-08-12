@@ -15,7 +15,7 @@ namespace tics {
 
 struct Transform {
 	Terathon::Vector3D position = Terathon::Vector3D(0,0,0);
-	Terathon::Quaternion rotation = Terathon::Quaternion(1);
+	Terathon::Quaternion rotation = Terathon::Quaternion::identity;
 };
 
 enum ColliderType {
@@ -99,11 +99,6 @@ private:
 	std::weak_ptr<Transform> m_transform;
 };
 
-struct AngularUnit {
-	Terathon::Vector3D axis = Terathon::Vector3D(0,1,0);
-	float angle_radians = 0.0;
-};
-
 // A physics body that is moved by physics simulation.
 class RigidBody : public ICollisionObject {
 public:
@@ -114,13 +109,15 @@ public:
 	virtual std::weak_ptr<Transform> get_transform() const override;
 
 	Terathon::Vector3D velocity = Terathon::Vector3D(0,0,0);
-	AngularUnit angular_velocity;
+	// !! unit: rad / MILLISECOND
+	Terathon::Quaternion angular_velocity = Terathon::Quaternion::identity;
 
 	// accumulated, applied and reset every frame
 	// an impulse is an instantaneous change in momentum
 	Terathon::Vector3D impulse = Terathon::Vector3D(0,0,0);
 	// an angular impulse is an instantaneous change in angular momentum
-	AngularUnit angular_impulse;
+	// !! unit: rad / MILLISECOND
+	Terathon::Quaternion angular_impulse = Terathon::Quaternion::identity;
 
 	float mass = 1.0f;
 	float gravity_scale = 1.0f;

@@ -1,7 +1,6 @@
 #include "tics.h"
 
 #include <cassert>
-#include <iostream>
 
 using tics::ImpulseSolver;
 
@@ -29,9 +28,6 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 		const auto relative_velocity = velocity_a - velocity_b;
 		// relative velocity in the collision normal direction
 		const auto n_dot_v = Terathon::Dot(relative_velocity, collision.points.normal);
-
-		// continue if the objects have opposite velocities (they are separating)
-		if (n_dot_v >= 0.0) { continue; }
 
 		// coefficient of restitution is the ratio of the relative velocity of
 		// separation after collision to the relative velocity of approach before collision.
