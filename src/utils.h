@@ -32,6 +32,20 @@ glm::mat4 transform_to_model_matrix(const tics::Transform &transform) {
 		transform.position.x, transform.position.y, transform.position.z
 	));
 
+	const auto rot_mat = transform.rotation.GetRotationMatrix();
+	float m00 = rot_mat(0,0); float m01 = rot_mat(0,1); float m02 = rot_mat(0,2);
+	float m10 = rot_mat(1,0); float m11 = rot_mat(1,1); float m12 = rot_mat(1,2);
+	float m20 = rot_mat(2,0); float m21 = rot_mat(2,1); float m22 = rot_mat(2,2);
+	float aaa[16];
+	aaa[   0] = m00; aaa[   1] = m10; aaa[   2] = m20; aaa[   3] = 0;
+	aaa[ 4+0] = m01; aaa[ 4+1] = m11; aaa[ 4+2] = m21; aaa[ 4+3] = 0;
+	aaa[ 8+0] = m02; aaa[ 8+1] = m12; aaa[ 8+2] = m22; aaa[ 8+3] = 0;
+	aaa[12+0] =   0; aaa[12+1] =   0; aaa[12+2] =   0; aaa[12+3] = 1;
+
+	const auto glm_rot_mat = glm::make_mat4(aaa);
+
+	model_matrix = model_matrix * glm_rot_mat;
+
 	return model_matrix;
 }
 

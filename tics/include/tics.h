@@ -14,7 +14,8 @@
 namespace tics {
 
 struct Transform {
-	Terathon::Vector3D position;
+	Terathon::Vector3D position = Terathon::Vector3D(0,0,0);
+	Terathon::Quaternion rotation = Terathon::Quaternion(1);
 };
 
 enum ColliderType {

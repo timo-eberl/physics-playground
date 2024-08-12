@@ -150,6 +150,7 @@ ProgramState initialize(GLFWwindow* window) {
 	scene->set_directional_light(create_generic_light());
 	auto renderer = std::make_unique<ron::OpenGLRenderer>(1280, 720);
 	renderer->set_clear_color(glm::vec4(0.1, 0.1, 0.1, 1.0));
+	renderer->render_axes = true;
 	// camera setup
 	const auto initial_camera_rotation = glm::vec2(glm::radians(-24.2f), glm::radians(63.6f));
 	auto camera_controls = ron::CameraViewportControls(initial_camera_rotation);
@@ -164,6 +165,7 @@ ProgramState initialize(GLFWwindow* window) {
 	auto sphere_1 = create_sphere(
 		Terathon::Vector3D(0.0, 1.5, 0.25), Terathon::Vector3D(0.0, 8.0, 0.0), *scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
 	);
+	sphere_1.transform->rotation = Terathon::Quaternion::MakeRotationZ(3.141 * 0.25);
 	spheres->emplace_back(sphere_1);
 	physics_world.add_object(sphere_1.rigid_body);
 	scene->add(sphere_1.mesh_node);
@@ -284,12 +286,21 @@ void process(GLFWwindow* window, ProgramState& state) {
 			),
 			size * size // weight
 		);
+		
+		sphere.transform->rotation = Terathon::Quaternion::MakeRotation(
+			141 * 2 * static_cast<float>(std::rand()) / RAND_MAX,
+			Terathon::Normalize(Terathon::Bivector3D(
+				static_cast<float>(std::rand()) / RAND_MAX,
+				static_cast<float>(std::rand()) / RAND_MAX,
+				static_cast<float>(std::rand()) / RAND_MAX
+			))
+		);
 		state.spheres->emplace_back(sphere);
 		state.physics_world.add_object(sphere.rigid_body);
 		state.render_scene->add(sphere.mesh_node);
 	}
 
-	float time_scale = 0.1f;
+	float time_scale = 0.5f;
 	state.physics_world.update(time_scale/60.0f);
 
 	const auto physics_time = std::chrono::high_resolution_clock::now() - start_time_point;
