@@ -38,19 +38,23 @@ void World::update(const float delta) {
 			const auto rigid_body = dynamic_cast<RigidBody *>(sp_object.get());
 			if (!rigid_body) { continue; }
 
-			rigid_body->force += rigid_body->mass * rigid_body->gravity_scale * m_gravity;
+			rigid_body->impulse += rigid_body->mass * delta * rigid_body->gravity_scale * m_gravity;
 
 			assert(rigid_body->mass != 0.0f);
-			auto acceleration = rigid_body->force / rigid_body->mass;
-			rigid_body->velocity += acceleration * delta;
+			rigid_body->velocity += rigid_body->impulse / rigid_body->mass;
 
 			const auto &transform = rigid_body->get_transform().lock();
 			transform->position += rigid_body->velocity * delta;
-			transform->rotation *= rigid_body->angular_velocity;
+
+			const auto angular_impulse_quat = Terathon::Quaternion::MakeRotation(
+				rigid_body->angular_velocity.angle_radians * delta,
+				!(rigid_body->angular_velocity.axis)
+			);
+			transform->rotation *= angular_impulse_quat; // "add" rotation change
 
 			const auto q = Terathon::Quaternion(1) * Terathon::Quaternion(1);
 
-			rigid_body->force = Terathon::Vector3D(0,0,0);
+			rigid_body->impulse = Terathon::Vector3D(0,0,0);
 		}
 	}
 }

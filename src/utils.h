@@ -65,7 +65,7 @@ ron::DirectionalLight create_generic_light() {
 }
 
 Sphere create_sphere(
-	Terathon::Vector3D position, Terathon::Vector3D velocity, Terathon::Quaternion angular_velocity, const ron::Scene &scene,
+	Terathon::Vector3D position, Terathon::Vector3D velocity, tics::AngularUnit angular_velocity, const ron::Scene &scene,
 	glm::vec3 color = glm::vec3(1.0), float scale = 1.0f, float mass = 1.0f
 ) {
 	Sphere sphere = Sphere({
