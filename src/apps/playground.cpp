@@ -40,7 +40,6 @@ struct ProgramState {
 
 	std::shared_ptr<std::vector<Sphere>> spheres;
 	std::shared_ptr<std::vector<StaticObject>> static_geometry;
-	AreaTrigger area_trigger;
 
 	ron::PerspectiveCamera camera;
 	ron::CameraViewportControls camera_controls;
@@ -168,7 +167,7 @@ ProgramState initialize(GLFWwindow* window) {
 		// Terathon::Quaternion::MakeRotation(3.141 * 0.2, Terathon::Bivector3D( 0,0,1 )),
 		*scene, glm::vec3(0.2, 0.2, 0.8), 0.75f, 0.75f
 	);
-	sphere_1.transform->rotation = Terathon::Quaternion::MakeRotationZ(3.141 * 0.25);
+	// sphere_1.transform->rotation = Terathon::Quaternion::MakeRotationZ(3.141 * 0.25);
 	spheres->emplace_back(sphere_1);
 	physics_world.add_object(sphere_1.rigid_body);
 	scene->add(sphere_1.mesh_node);
@@ -181,54 +180,54 @@ ProgramState initialize(GLFWwindow* window) {
 	}
 
 	// area trigger that turns objects red that are inside it
-	AreaTrigger area_trigger = {
-		std::make_shared<tics::CollisionArea>(),
-		std::make_shared<tics::Transform>(),
-		std::make_shared<tics::MeshCollider>(),
-		ron::gltf::import("models/flat_icosphere.glb").get_mesh_nodes().front()
-	};
-	area_trigger.area->set_collider(area_trigger.collider);
-	area_trigger.area->set_transform(area_trigger.transform);
-	area_trigger.area->on_collision_enter = [spheres, scene](const auto &other, const auto &collision_data) {
-		std::cout << "collision_data: normal: {"
-			<< collision_data.normal.x << "," << collision_data.normal.y << "," << collision_data.normal.z << "}"
-			<< " depth: " << collision_data.depth << "\n";
-		// const auto debug_sphere = create_sphere(
-		// 	collision_data.a, Terathon::Vector3D(0,0,0),
-		// 	Terathon::Quaternion(1), *scene, {1,1,0}, 0.1
-		// );
-		// scene->add(debug_sphere.mesh_node);
-		for (const auto &sphere : *spheres) {
-			if (sphere.rigid_body == other.lock()) {
-				sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"]
-					= ron::make_uniform(glm::vec4(glm::vec3(1.0, 0.1, 0.1), 1.0));
-			}
-		}
-	};
-	area_trigger.area->on_collision_exit = [spheres](const auto &other) {
-		for (const auto &sphere : *spheres) {
-			if (sphere.rigid_body == other.lock()) {
-				sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"]
-					= ron::make_uniform(glm::vec4(sphere.color, 1.0));
-			}
-		}
-	};
-	// apply scale to mesh
-	for (auto &section : area_trigger.mesh_node->get_mesh()->sections) {
-		for (auto &position : section.geometry->positions) {
-			position *= glm::vec3(2.0, 1.0, 4.0);
-		}
-	}
-	area_trigger.transform->position = Terathon::Vector3D(-2.0, 2.0, 0.0);
-	area_trigger.mesh_node->set_model_matrix(transform_to_model_matrix(*area_trigger.transform));
-	const auto area_trigger_geometry = area_trigger.mesh_node->get_mesh()->sections.front().geometry;
-	// copy positions and inidices to MeshCollider
-	area_trigger.collider->indices = area_trigger_geometry->indices;
-	for (const auto &vertex_pos : area_trigger_geometry->positions) {
-		area_trigger.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
-	}
-	physics_world.add_object(area_trigger.area);
-	scene->add(area_trigger.mesh_node);
+	// AreaTrigger area_trigger = {
+	// 	std::make_shared<tics::CollisionArea>(),
+	// 	std::make_shared<tics::Transform>(),
+	// 	std::make_shared<tics::MeshCollider>(),
+	// 	ron::gltf::import("models/icosphere_lowres.glb").get_mesh_nodes().front()
+	// };
+	// area_trigger.area->set_collider(area_trigger.collider);
+	// area_trigger.area->set_transform(area_trigger.transform);
+	// area_trigger.area->on_collision_enter = [spheres, scene](const auto &other, const auto &collision_data) {
+	// 	std::cout << "collision_data: normal: {"
+	// 		<< collision_data.normal.x << "," << collision_data.normal.y << "," << collision_data.normal.z << "}"
+	// 		<< " depth: " << collision_data.depth << "\n";
+	// 	const auto debug_sphere = create_sphere(
+	// 		collision_data.a, Terathon::Vector3D(0,0,0),
+	// 		Terathon::Quaternion(1), *scene, {1,1,0}, 0.1
+	// 	);
+	// 	scene->add(debug_sphere.mesh_node);
+	// 	for (const auto &sphere : *spheres) {
+	// 		if (sphere.rigid_body == other.lock()) {
+	// 			sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"]
+	// 				= ron::make_uniform(glm::vec4(glm::vec3(1.0, 0.1, 0.1), 1.0));
+	// 		}
+	// 	}
+	// };
+	// area_trigger.area->on_collision_exit = [spheres](const auto &other) {
+	// 	for (const auto &sphere : *spheres) {
+	// 		if (sphere.rigid_body == other.lock()) {
+	// 			sphere.mesh_node->get_mesh()->sections.front().material->uniforms["albedo_color"]
+	// 				= ron::make_uniform(glm::vec4(sphere.color, 1.0));
+	// 		}
+	// 	}
+	// };
+	// // apply scale to mesh
+	// for (auto &section : area_trigger.mesh_node->get_mesh()->sections) {
+	// 	for (auto &position : section.geometry->positions) {
+	// 		position *= glm::vec3(2.0, 1.0, 2.0);
+	// 	}
+	// }
+	// area_trigger.transform->position = Terathon::Vector3D(-2.0, 2.0, 0.0);
+	// area_trigger.mesh_node->set_model_matrix(transform_to_model_matrix(*area_trigger.transform));
+	// const auto area_trigger_geometry = area_trigger.mesh_node->get_mesh()->sections.front().geometry;
+	// // copy positions and inidices to MeshCollider
+	// area_trigger.collider->indices = area_trigger_geometry->indices;
+	// for (const auto &vertex_pos : area_trigger_geometry->positions) {
+	// 	area_trigger.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
+	// }
+	// physics_world.add_object(area_trigger.area);
+	// scene->add(area_trigger.mesh_node);
 
 	// applies forces
 	auto impulse_solver = std::make_shared<tics::ImpulseSolver>();
@@ -248,7 +247,6 @@ ProgramState initialize(GLFWwindow* window) {
 		std::chrono::high_resolution_clock::now(),
 		spheres,
 		static_geometry,
-		area_trigger,
 		ron::PerspectiveCamera(60.0f, 1280.0f/720.0f, 0.1f, 1000.0f),
 		camera_controls,
 		scene,

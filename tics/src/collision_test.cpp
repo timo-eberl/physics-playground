@@ -45,6 +45,10 @@ Terathon::Vector3D support_point_mesh(
 		}
 	}
 
+	if (support_point_dot < 0.0) {
+		std::cout << "alarm\n";
+	}
+
 	// this fails if the center position of a mesh is not inside the mesh
 	assert(support_point_dot >= 0.0);
 

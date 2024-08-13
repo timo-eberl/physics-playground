@@ -4,6 +4,26 @@
 
 using tics::ImpulseSolver;
 
+static void apply_impulse_at(
+	tics::RigidBody *rb, Terathon::Vector3D impulse, Terathon::Vector3D location
+) {
+	// body space collision point
+	const auto r = (
+		location - rb->get_transform().lock()->position
+	);
+	const auto angular_momentum_axis = Terathon::Cross(r, impulse);
+
+	const auto radians = Terathon::Magnitude(angular_momentum_axis) * 3.141f * 0.01f * 2.0f;
+	const auto axis = Terathon::Normalize(angular_momentum_axis);
+
+	rb->angular_impulse = Terathon::Quaternion::MakeRotation(
+		radians,
+		!axis
+	);
+
+	return;
+}
+
 void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 	for (auto collision : collisions) {
 		auto sp_a = collision.a.lock();
@@ -28,6 +48,7 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 		const auto relative_velocity = velocity_a - velocity_b;
 		// relative velocity in the collision normal direction
 		const auto n_dot_v = Terathon::Dot(relative_velocity, collision.points.normal);
+		// n dot v is > 0 if the bodies are moving away from each other
 
 		// coefficient of restitution is the ratio of the relative velocity of
 		// separation after collision to the relative velocity of approach before collision.
@@ -43,7 +64,16 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 		const auto impulse = impulse_magnitude * collision.points.normal;
 
 		// apply impulses only to rigid bodies
-		if (rb_a) { rb_a->impulse += impulse; };
-		if (rb_b) { rb_b->impulse -= impulse; }
+
+		const auto other_impulse = impulse_magnitude * Terathon::Normalize(relative_velocity);
+
+		if (rb_a) {
+			rb_a->impulse += impulse;
+			apply_impulse_at(rb_a, -other_impulse, collision.points.a);
+		}
+		if (rb_b) {
+			rb_b->impulse -= impulse;
+			apply_impulse_at(rb_b,  other_impulse, collision.points.b);
+		}
 	}
 }

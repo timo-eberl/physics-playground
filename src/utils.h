@@ -73,7 +73,7 @@ Sphere create_sphere(
 		std::make_shared<tics::RigidBody>(),
 		std::make_shared<tics::Transform>(),
 		std::make_shared<tics::MeshCollider>(),
-		ron::gltf::import("models/icosphere_lowres.glb").get_mesh_nodes().front(),
+		ron::gltf::import("models/flat_icosphere.glb").get_mesh_nodes().front(),
 	});
 
 	sphere.rigid_body->set_collider(sphere.collider);
@@ -101,7 +101,7 @@ Sphere create_sphere(
 	cloned_mesh_node->get_mesh()->sections.front().material = material;
 	sphere.mesh_node = cloned_mesh_node;
 
-	const auto geometry = ron::gltf::import("models/icosphere_lowres_smooth.glb").get_mesh_nodes()
+	const auto geometry = ron::gltf::import("models/flat_icosphere.glb").get_mesh_nodes()
 		.front()->get_mesh()->sections.front().geometry;
 	// apply scale to collision mesh
 	for (auto &position : geometry->positions) {

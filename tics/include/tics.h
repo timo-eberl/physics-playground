@@ -109,17 +109,18 @@ public:
 	virtual std::weak_ptr<Transform> get_transform() const override;
 
 	Terathon::Vector3D velocity = Terathon::Vector3D(0,0,0);
-	// !! unit: rad / MILLISECOND
+	// !! unit: rad / 0.01 s !!
 	Terathon::Quaternion angular_velocity = Terathon::Quaternion::identity;
 
 	// accumulated, applied and reset every frame
 	// an impulse is an instantaneous change in momentum
 	Terathon::Vector3D impulse = Terathon::Vector3D(0,0,0);
 	// an angular impulse is an instantaneous change in angular momentum
-	// !! unit: rad / MILLISECOND
+	// !! unit: rad / 0.01 s !!
 	Terathon::Quaternion angular_impulse = Terathon::Quaternion::identity;
 
 	float mass = 1.0f;
+	float moment_of_inertia = 8.0f; // unit: kg*m²
 	float gravity_scale = 1.0f;
 private:
 	std::weak_ptr<Collider> m_collider;
