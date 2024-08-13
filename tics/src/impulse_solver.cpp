@@ -13,7 +13,7 @@ static void apply_impulse_at(
 	);
 	const auto angular_momentum_axis = Terathon::Cross(r, impulse);
 
-	const auto radians = Terathon::Magnitude(angular_momentum_axis) * 3.141f * 0.01f * 2.0f;
+	const auto radians = Terathon::Magnitude(angular_momentum_axis) * 3.141f * 0.01f * 1.5f;
 	const auto axis = Terathon::Normalize(angular_momentum_axis);
 
 	rb->angular_impulse = Terathon::Quaternion::MakeRotation(
@@ -48,7 +48,7 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 		const auto relative_velocity = velocity_a - velocity_b;
 		// relative velocity in the collision normal direction
 		const auto n_dot_v = Terathon::Dot(relative_velocity, collision.points.normal);
-		// n dot v is > 0 if the bodies are moving away from each other
+		// n_dot_v is > 0 if the bodies are moving away from each other
 
 		// coefficient of restitution is the ratio of the relative velocity of
 		// separation after collision to the relative velocity of approach before collision.

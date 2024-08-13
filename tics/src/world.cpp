@@ -83,7 +83,7 @@ void World::update(const float delta) {
 			// friction
 			interpolator = 0.3f * delta;
 			rigid_body->velocity -= rigid_body->velocity * interpolator;
-			interpolator = 1.0f * delta;
+			interpolator = 1.5f * delta;
 			rigid_body->angular_velocity = (
 				  Terathon::Quaternion::identity *      interpolator
 				+ rigid_body->angular_velocity * (1.0 - interpolator)
@@ -104,6 +104,11 @@ void World::resolve_collisions(const float delta) {
 
 			// break if both pointers point to the same object -> we will only check unique pairs
 			if (sp_a == sp_b) { break; }
+
+			// don't test static against static
+			const auto sb_a = dynamic_cast<StaticBody *>(sp_a.get());
+			const auto sb_b = dynamic_cast<StaticBody *>(sp_b.get());
+			if (sb_a && sb_b) { continue; }
 
 			if (sp_a->get_collider().expired() || sp_b->get_collider().expired() ||
 				sp_a->get_transform().expired() || sp_b->get_transform().expired()

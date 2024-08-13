@@ -58,8 +58,8 @@ bool raycast(
 
 struct CollisionPoints {
 	// a and b are the points where each shape penetrates the other most
-	// a is the point on object a that is farthest in b
-	// the penetration vector points from b to a
+	// a is the point on shape a that is farthest in shape b
+	// the penetration vector points from a to b / from shape b to shape a
 	Terathon::Vector3D a;
 	Terathon::Vector3D b;
 	Terathon::Vector3D normal; //penetration vector direction
