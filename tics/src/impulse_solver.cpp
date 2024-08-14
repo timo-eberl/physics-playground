@@ -37,11 +37,14 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 
 		// continue if the objects are no valid object combination
 		if (!( (rb_a && rb_b) || (rb_a && sb_b) || (sb_a && rb_b) )) { continue; }
-		// continue if a rigid body has an impulse that was not yet added to its velocity
-		if (
-			   (rb_a && rb_a->impulse != Terathon::Vector3D(0,0,0))
-			|| (rb_b && rb_b->impulse != Terathon::Vector3D(0,0,0))
-		) { continue; }
+
+		// hacky fix for the case when a rigid body collides with 2 other bodies: limit of 1 collision response/body
+		// very problematic, when a rigid body collides with two static bodies (e.g. intersecting static bodies)
+		// the best solution: change order to solver_1 -> update velocity -> solver_2 -> update velocity
+		// if (
+		// 	   (rb_a && rb_a->impulse != Terathon::Vector3D(0,0,0))
+		// 	|| (rb_b && rb_b->impulse != Terathon::Vector3D(0,0,0))
+		// ) { continue; }
 
 		const auto velocity_a = rb_a ? rb_a->velocity : Terathon::Vector3D(0.0, 0.0, 0.0);
 		const auto velocity_b = rb_b ? rb_b->velocity : Terathon::Vector3D(0.0, 0.0, 0.0);
@@ -65,6 +68,7 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 
 		// apply impulses only to rigid bodies
 
+		// this is just what worked best, the formula is probably very wrong
 		const auto other_impulse = impulse_magnitude * Terathon::Normalize(relative_velocity);
 
 		if (rb_a) {
