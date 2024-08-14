@@ -2,11 +2,11 @@
 
 #include <cmath>
 
-using tics::PositionSolver;
+using tics::NonIntersectionConstraintSolver;
 
 enum ObjectCombination { Invalid, RigidBodyRigidBody, RigidBodyStaticBody, StaticBodyRigidBody };
 
-void PositionSolver::solve(std::vector<Collision>& collisions, float delta) {
+void NonIntersectionConstraintSolver::solve(std::vector<Collision>& collisions, float delta) {
 	for (auto collision : collisions) {
 		auto sp_a = collision.a.lock();
 		auto sp_b = collision.b.lock();

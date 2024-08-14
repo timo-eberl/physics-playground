@@ -49,7 +49,7 @@ struct ProgramState {
 
 	tics::World physics_world;
 	std::shared_ptr<tics::ImpulseSolver> impulse_solver;
-	std::shared_ptr<tics::PositionSolver> position_solver;
+	std::shared_ptr<tics::NonIntersectionConstraintSolver> position_solver;
 	std::shared_ptr<tics::CollisionAreaSolver> collision_area_solver;
 };
 
@@ -226,13 +226,13 @@ ProgramState initialize(GLFWwindow* window) {
 	for (const auto &vertex_pos : area_trigger_geometry->positions) {
 		area_trigger.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
 	}
-	physics_world.add_object(area_trigger.area);
-	scene->add(area_trigger.mesh_node);
+	// physics_world.add_object(area_trigger.area);
+	// scene->add(area_trigger.mesh_node);
 
 	// applies forces
 	auto impulse_solver = std::make_shared<tics::ImpulseSolver>();
 	// fixes intersections
-	auto position_solver = std::make_shared<tics::PositionSolver>();
+	auto position_solver = std::make_shared<tics::NonIntersectionConstraintSolver>();
 	// alerts collision areas
 	auto collision_area_solver = std::make_shared<tics::CollisionAreaSolver>();
 	physics_world.add_solver(impulse_solver);

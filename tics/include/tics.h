@@ -184,9 +184,9 @@ public:
 	virtual void solve(std::vector<Collision>& collisions, float delta) override;
 };
 
-class PositionSolver : public ISolver {
+class NonIntersectionConstraintSolver : public ISolver {
 public:
-	~PositionSolver() {};
+	~NonIntersectionConstraintSolver() {};
 
 	virtual void solve(std::vector<Collision>& collisions, float delta) override;
 };
