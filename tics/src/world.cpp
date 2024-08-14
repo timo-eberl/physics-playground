@@ -39,56 +39,67 @@ void World::update(const float delta) {
 			const auto rigid_body = dynamic_cast<RigidBody *>(sp_object.get());
 			if (!rigid_body) { continue; }
 
-			rigid_body->impulse += rigid_body->mass * delta * rigid_body->gravity_scale * m_gravity;
-
-			assert(rigid_body->mass != 0.0f);
-			rigid_body->velocity += rigid_body->impulse / rigid_body->mass;
-
 			const auto &transform = rigid_body->get_transform().lock();
-			transform->position += rigid_body->velocity * delta;
 
-			// angular velocity is stored in meter / 0.01s, because a quaternion
-			// using rad/s would only be able to store a maximum of 0.5 rotations per second
+			// linear movement
+			{
+				rigid_body->impulse += rigid_body->mass * delta * rigid_body->gravity_scale * m_gravity;
 
-			if (rigid_body->angular_impulse.x != rigid_body->angular_impulse.x) {
-				rigid_body->angular_impulse = Terathon::Quaternion::identity;
+				assert(rigid_body->mass != 0.0f);
+				rigid_body->velocity += rigid_body->impulse / rigid_body->mass;
+
+				transform->position += rigid_body->velocity * delta;
+
+				// friction
+				const auto lin_fric_interpolator = 0.3f * delta;
+				rigid_body->velocity -= rigid_body->velocity * lin_fric_interpolator;
 			}
 
-			// "scale" angular impulse
-			auto interpolator = 1.0f/rigid_body->moment_of_inertia;
-			rigid_body->angular_impulse = (
-				Terathon::Quaternion::identity * (1.0 - interpolator)
-				+ rigid_body->angular_impulse *         interpolator
-			);
-			rigid_body->angular_impulse.Normalize();
-			assert(rigid_body->angular_impulse.x == rigid_body->angular_impulse.x);
+			// angular movement
+			{
+				// angular velocity is stored in meter / 0.01s, because a quaternion
+				// using rad/s would only be able to store a maximum of 1 rotation per second
 
-			// accelerate angular velocity by angular impulse
-			rigid_body->angular_velocity *= rigid_body->angular_impulse;
-			assert(rigid_body->angular_velocity.x == rigid_body->angular_velocity.x);
+				// "scale" angular impulse
+				auto interpolator = 1.0f/rigid_body->moment_of_inertia;
+				rigid_body->angular_impulse = (
+					Terathon::Quaternion::identity * (1.0 - interpolator)
+					+ rigid_body->angular_impulse *         interpolator
+				);
+				rigid_body->angular_impulse.Normalize();
+				assert(rigid_body->angular_impulse.x == rigid_body->angular_impulse.x);
 
-			// "scale" velocity by delta to get angular impulse of current frame
-			auto angular_impulse = (
-				Terathon::Quaternion::identity * (1.0 - delta*100.0)
-				+ rigid_body->angular_velocity *        delta*100.0
-			);
-			angular_impulse.Normalize();
+				// accelerate angular velocity by angular impulse
+				rigid_body->angular_velocity *= rigid_body->angular_impulse;
+				assert(rigid_body->angular_velocity.x == rigid_body->angular_velocity.x);
 
-			// "add" impulse
-			transform->rotation *= angular_impulse;
+				// "scale" velocity by delta to get angular impulse of current frame
+				auto angular_impulse = (
+					Terathon::Quaternion::identity * (1.0 - delta*100.0)
+					+ rigid_body->angular_velocity *        delta*100.0
+				);
+				angular_impulse.Normalize();
 
+				// "add" impulse
+				transform->rotation *= angular_impulse;
+
+				// friction
+				const auto ang_fric_interpolator = 1.5f * delta;
+				rigid_body->angular_velocity = (
+					Terathon::Quaternion::identity *      ang_fric_interpolator
+					+ rigid_body->angular_velocity * (1.0 - ang_fric_interpolator)
+				);
+				rigid_body->angular_velocity.Normalize();
+			}
+
+			// reset impulses
 			rigid_body->impulse = Terathon::Vector3D(0,0,0);
 			rigid_body->angular_impulse = Terathon::Quaternion::identity;
 
-			// friction
-			interpolator = 0.3f * delta;
-			rigid_body->velocity -= rigid_body->velocity * interpolator;
-			interpolator = 1.5f * delta;
-			rigid_body->angular_velocity = (
-				  Terathon::Quaternion::identity *      interpolator
-				+ rigid_body->angular_velocity * (1.0 - interpolator)
-			);
-			rigid_body->angular_velocity.Normalize();
+			// fixes bug where rotation is NaN
+			if (rigid_body->angular_impulse.x != rigid_body->angular_impulse.x) {
+				rigid_body->angular_impulse = Terathon::Quaternion::identity;
+			}
 		}
 	}
 }
