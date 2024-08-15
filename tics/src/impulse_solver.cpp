@@ -8,19 +8,10 @@ static Terathon::Vector3D get_velocity(tics::RigidBody *rb, const Terathon::Vect
 	const auto transform = rb->get_transform().lock();
 
 	// move to local space of rigid body
-	auto local_p = point - transform->position;
-	local_p = Terathon::Transform(local_p, Terathon::Inverse(transform->rotation));
+	const auto local = point - transform->get_position();
 	// "move" the point according to the angular velocity
-	const auto local_rotated_p = Terathon::Transform(local_p, rb->angular_velocity);
-	// convert back to world space
-	auto world_rotated_p = Terathon::Transform(local_rotated_p, transform->rotation);
-	world_rotated_p += transform->position;
-
-	// move to local space of rigid body
-	const auto prev_local = point - transform->position;
-	// "move" the point according to the angular velocity
-	const auto prev_rotated = Terathon::Transform(prev_local, rb->angular_velocity);
-	const auto rotation_distance = (prev_rotated - prev_local) * (10.0f);
+	const auto rotated = Terathon::Transform(local, rb->angular_velocity);
+	const auto rotation_distance = (rotated - local) * (10.0f);
 
 	return rotation_distance + rb->velocity;
 }
@@ -50,8 +41,8 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 		const auto velocity_a = rb_a ? get_velocity(rb_a, collision.points.a) : Terathon::Vector3D(0.0, 0.0, 0.0);
 		const auto velocity_b = rb_b ? get_velocity(rb_b, collision.points.b) : Terathon::Vector3D(0.0, 0.0, 0.0);
 
-		const auto r_a = collision.points.a - sp_a->get_transform().lock()->position;
-		const auto r_b = collision.points.b - sp_b->get_transform().lock()->position;
+		const auto r_a = collision.points.a - sp_a->get_transform().lock()->get_position();
+		const auto r_b = collision.points.b - sp_b->get_transform().lock()->get_position();
 
 		auto r_a_dist_squared = Terathon::Magnitude(r_a);
 		r_a_dist_squared *= r_a_dist_squared;

@@ -20,17 +20,6 @@ struct SupportPoint {
 };
 
 // A support function takes a direction d and returns a point on the boundary of a shape "furthest" in direction d
-
-Terathon::Vector3D support_point_sphere(
-	const Collider &c, const Terathon::Vector3D &d
-) {
-	assert(c.type == ColliderType::SPHERE);
-
-	const auto &collider = static_cast<const SphereCollider&>(c);
-
-	return collider.center + d * collider.radius;
-}
-
 Terathon::Vector3D support_point_mesh(
 	const Collider &c, const Transform &t, const Terathon::Vector3D &d
 ) {
@@ -38,7 +27,7 @@ Terathon::Vector3D support_point_mesh(
 
 	const auto &collider = static_cast<const MeshCollider&>(c);
 
-	const auto local_d = Terathon::Transform(d, Terathon::Inverse(t.rotation));
+	const auto local_d = Terathon::Transform(d, Terathon::Inverse(t.get_rotation()));
 
 	// find the support point in local space
 	auto support_point_dot = -1.0;
@@ -51,21 +40,11 @@ Terathon::Vector3D support_point_mesh(
 		}
 	}
 
-	if (support_point_dot < 0.0) {
-		std::cout << "alarm\n";
-	}
-
 	// this fails if the center position of a mesh is not inside the mesh
 	assert(support_point_dot >= 0.0);
 
-	const auto R0 = Terathon::Quaternion::MakeRotation(
-		3.141 * 0.05, Terathon::Bivector3D(1,0,0)
-	);
-	const auto v0_ = Terathon::Transform(Terathon::Vector3D(1,1,1), R0);
-	const auto v0 = Terathon::Transform(v0_, Terathon::Inverse(R0));
-
-	support_point = Terathon::Transform(support_point, t.rotation);
-	support_point = support_point + t.position;
+	support_point = Terathon::Transform(support_point, t.get_rotation());
+	support_point = support_point + t.get_position();
 
 	return support_point;
 }
@@ -85,79 +64,6 @@ SupportPoint support_point_on_minkowski_diff_mesh_mesh(
 	point.m = point.a - support_point_mesh(cb, tb, - d);
 
 	return point;
-}
-
-CollisionPoints collision_test_sphere_sphere(
-	const Collider& a, const Transform& ta,
-	const Collider& b, const Transform& tb
-) {
-	assert(a.type == ColliderType::SPHERE);
-	assert(b.type == ColliderType::SPHERE);
-
-	auto& a_collider = static_cast<const SphereCollider&>(a);
-	auto& b_collider = static_cast<const SphereCollider&>(b);
-
-	auto a_center = a_collider.center + ta.position;
-	auto b_center = b_collider.center + tb.position;
-
-	auto ab_vector = b_center - a_center;
-	auto ab_distance = Terathon::Magnitude(ab_vector);
-
-	if (ab_distance > a_collider.radius + b_collider.radius) {
-		// no collision
-		return CollisionPoints();
-	}
-
-	auto ab_normal = Terathon::Normalize(ab_vector);
-
-	auto collision_points = CollisionPoints();
-
-	collision_points.has_collision = true;
-
-	const auto collision_points_a = a_center + ab_normal * a_collider.radius;
-	const auto collision_points_b = b_center - ab_normal * b_collider.radius;
-
-	collision_points.normal = -ab_normal;
-	collision_points.depth = Terathon::Magnitude(collision_points_b - collision_points_a);
-
-	return collision_points;
-}
-
-CollisionPoints collision_test_sphere_plane(
-	const Collider& a, const Transform& ta,
-	const Collider& b, const Transform& tb
-) {
-	assert(a.type == ColliderType::SPHERE);
-	assert(b.type == ColliderType::PLANE);
-
-	auto& sphere_collider = static_cast<const SphereCollider&>(a);
-	auto& plane_collider = static_cast<const PlaneCollider&>(b);
-
-	auto sphere_center = sphere_collider.center + ta.position;
-
-	auto plane_normal = plane_collider.normal; // TODO: rotate with tb
-	auto point_on_plane = plane_normal * plane_collider.distance + tb.position;
-
-	auto distance = Terathon::Dot(plane_normal, sphere_center - point_on_plane);
-
-	if (distance > sphere_collider.radius) {
-		// no collision
-		return CollisionPoints();
-	}
-
-	auto collision_points = CollisionPoints();
-
-	collision_points.has_collision = true;
-
-	// furthest point of sphere a into plane b
-	const auto collision_points_a = sphere_center - plane_normal * sphere_collider.radius;
-	// furthest point of plane b into sphere a
-	const auto collision_points_b = sphere_center - plane_normal * distance;
-
-	collision_points.normal = plane_normal;
-	collision_points.depth = Terathon::Magnitude(collision_points_b - collision_points_a);
-
-	return collision_points;
 }
 
 void add_if_unique_edge(
@@ -192,7 +98,7 @@ CollisionPoints collision_test_mesh_mesh(
 	// GJK Algorithm https://youtu.be/ajv46BSqcK4
 
 	// the first direction is arbitrary. we choose the direction from the origin of one shape to the other
-	auto d = Terathon::Normalize( tb.position - ta.position );
+	auto d = Terathon::Normalize( tb.get_position() - ta.get_position() );
 
 	SupportPoint simplex [4] = { SupportPoint(), SupportPoint(), SupportPoint(), SupportPoint() };
 	// find the first support point on the minkowski difference in direction d
@@ -499,10 +405,10 @@ CollisionPoints tics::collision_test(
 	// a collision table as described by valve in this pdf on page 33
 	// https://media.steampowered.com/apps/valve/2015/DirkGregorius_Contacts.pdf
 	static const CollisionTestFunc function_table[3][3] = {
-		  // Sphere                     Plane                        // Mesh
-		{ collision_test_sphere_sphere, collision_test_sphere_plane, nullptr                    },  // Sphere
-		{ nullptr,                      nullptr                    , nullptr                    },  // Plane
-		{ nullptr,                      nullptr                    , collision_test_mesh_mesh   },  // Mesh
+		  // Sphere        Plane           // Mesh
+		{ nullptr,         nullptr,        nullptr                    },  // Sphere
+		{ nullptr,         nullptr       , nullptr                    },  // Plane
+		{ nullptr,         nullptr       , collision_test_mesh_mesh   },  // Mesh
 	};
 
 	// make sure the colliders are in the correct order

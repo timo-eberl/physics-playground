@@ -6,6 +6,17 @@ using tics::NonIntersectionConstraintSolver;
 
 enum ObjectCombination { Invalid, RigidBodyRigidBody, RigidBodyStaticBody, StaticBodyRigidBody };
 
+static void add_pos_offset(tics::ICollisionObject &object, Terathon::Vector3D offset) {
+	const auto &transform = object.get_transform().lock();
+
+	#ifdef TICS_GA
+		const auto offset_motor = Terathon::Motor3D::MakeTranslation(offset);
+		transform->motor = offset_motor * transform->motor;
+	#else
+		transform->position += offset;
+	#endif
+}
+
 void NonIntersectionConstraintSolver::solve(std::vector<Collision>& collisions, float delta) {
 	for (auto collision : collisions) {
 		auto sp_a = collision.a.lock();
@@ -23,7 +34,7 @@ void NonIntersectionConstraintSolver::solve(std::vector<Collision>& collisions, 
 		else if (sb_a && rb_b) { object_combination = StaticBodyRigidBody; }
 		else { continue; } // no valid object combination combination
 
-		const auto percent = 1.0f;
+		const auto percent = 0.8f;
 		const auto depth_tolerance = 0.01f; // how much they are allowed to glitch into another
 
 		const float depth_with_tolerance = fmax(collision.points.depth - depth_tolerance, 0.0f);
@@ -34,14 +45,14 @@ void NonIntersectionConstraintSolver::solve(std::vector<Collision>& collisions, 
 			case RigidBodyRigidBody: {
 				const auto b_percentage_of_total_mass = (rb_b->mass) / (rb_a->mass + rb_b->mass);
 				// if b is heavier, move a more
-				rb_a->get_transform().lock()->position += correction * b_percentage_of_total_mass;
-				rb_b->get_transform().lock()->position -= correction * (1.0f - b_percentage_of_total_mass);
+				add_pos_offset(*sp_a,  correction * b_percentage_of_total_mass);
+				add_pos_offset(*sp_b, -correction * (1.0f - b_percentage_of_total_mass));
 			} break;
 			case RigidBodyStaticBody: // b is static -> move only a
-				sp_a->get_transform().lock()->position += correction;
+				add_pos_offset(*sp_a,  correction);
 				break;
 			case StaticBodyRigidBody: // a is static -> move only b
-				sp_b->get_transform().lock()->position -= correction;
+				add_pos_offset(*sp_b, -correction);
 			default: break;
 		}
 	}
