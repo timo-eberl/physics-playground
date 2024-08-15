@@ -204,11 +204,11 @@ void World::update(const float delta) {
 			);
 			assert(Terathon::Magnitude(pos_motor - pos_conv) < 0.001);
 
-			// linear friction
-			const auto lin_fric = 0.1f;
+			// linear air friction
+			const auto lin_fric = 0.2f;
 			rigid_body->velocity -= rigid_body->velocity * (lin_fric * delta);
-			// angular friction
-			const auto ang_fric = 0.8f;
+			// angular air friction
+			const auto ang_fric = 0.5f;
 			rigid_body->angular_velocity = scale_quaternion(rigid_body->angular_velocity, 1.0 - (ang_fric*delta));
 
 			// reset impulses

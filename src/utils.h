@@ -67,13 +67,13 @@ ron::DirectionalLight create_generic_light() {
 Sphere create_sphere(
 	Terathon::Vector3D position, Terathon::Vector3D velocity, Terathon::Quaternion angular_velocity,
 	const ron::Scene &scene,
-	glm::vec3 color = glm::vec3(1.0), float scale = 1.0f
+	glm::vec3 color = glm::vec3(1.0), float scale = 1.0f, float elasticity = 0.9f
 ) {
 	Sphere sphere = Sphere({
 		std::make_shared<tics::RigidBody>(),
 		std::make_shared<tics::Transform>(),
 		std::make_shared<tics::MeshCollider>(),
-		ron::gltf::import("models/cube.glb").get_mesh_nodes().front(),
+		ron::gltf::import("models/icosphere_lowres.glb").get_mesh_nodes().front(),
 	});
 
 	sphere.rigid_body->set_collider(sphere.collider);
@@ -82,6 +82,7 @@ Sphere create_sphere(
 	sphere.transform->position = position;
 	sphere.rigid_body->velocity = velocity;
 	sphere.rigid_body->angular_velocity = angular_velocity;
+	sphere.rigid_body->elasticity = elasticity;
 	sphere.color = color;
 
 	// apply scale to visual mesh
@@ -101,7 +102,7 @@ Sphere create_sphere(
 	cloned_mesh_node->get_mesh()->sections.front().material = material;
 	sphere.mesh_node = cloned_mesh_node;
 
-	const auto geometry = ron::gltf::import("models/cube.glb").get_mesh_nodes()
+	const auto geometry = ron::gltf::import("models/icosphere_lowres_smooth.glb").get_mesh_nodes()
 		.front()->get_mesh()->sections.front().geometry;
 	// apply scale to collision mesh
 	for (auto &position : geometry->positions) {

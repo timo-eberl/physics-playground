@@ -96,6 +96,8 @@ public:
 	virtual std::weak_ptr<Collider> get_collider() const override;
 	virtual void set_transform(const std::weak_ptr<Transform> transform) override;
 	virtual std::weak_ptr<Transform> get_transform() const override;
+
+	float elasticity = 0.8f; // [0;1]
 private:
 	std::weak_ptr<Collider> m_collider;
 	std::weak_ptr<Transform> m_transform;
@@ -124,6 +126,7 @@ public:
 	Terathon::Quaternion an_imp_div_sq_dst = Terathon::Quaternion::identity;
 
 	float mass = 1.0f;
+	float elasticity = 0.9f; // [0;1]
 	float gravity_scale = 1.0f;
 private:
 	std::weak_ptr<Collider> m_collider;

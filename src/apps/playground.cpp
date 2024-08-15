@@ -157,7 +157,7 @@ ProgramState initialize(GLFWwindow* window) {
 	camera_controls.set_target(glm::vec3(0.0f, 0.0f, 0.0f));
 
 	tics::World physics_world;
-	physics_world.set_gravity(Terathon::Vector3D(0.0, -10.0, 0.0));
+	physics_world.set_gravity(Terathon::Vector3D(0.0, -9.81, 0.0));
 
 	auto spheres = std::make_shared<std::vector<Sphere>>();
 
@@ -300,7 +300,8 @@ void process(GLFWwindow* window, ProgramState& state) {
 				static_cast<double>(std::rand()) / RAND_MAX
 			),
 			// scale
-			0.5 + 0.5 * static_cast<double>(std::rand()) / RAND_MAX
+			0.5 + 0.5 * static_cast<double>(std::rand()) / RAND_MAX,
+			0.8 + 0.2 * static_cast<double>(std::rand()) / RAND_MAX
 		);
 
 		state.spheres->emplace_back(sphere);

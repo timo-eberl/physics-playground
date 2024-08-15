@@ -19,9 +19,8 @@ static Terathon::Vector3D get_velocity(tics::RigidBody *rb, const Terathon::Vect
 	// move to local space of rigid body
 	const auto prev_local = point - transform->position;
 	// "move" the point according to the angular velocity
-	// not quite sure why, but for some reason the movement is "backwards"
 	const auto prev_rotated = Terathon::Transform(prev_local, rb->angular_velocity);
-	const auto rotation_distance = (prev_rotated - prev_local) * (10.0f * -1.0f);
+	const auto rotation_distance = (prev_rotated - prev_local) * (10.0f);
 
 	return rotation_distance + rb->velocity;
 }
@@ -61,18 +60,18 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 
 		const auto n = collision.points.normal;
 
-		const auto relative_velocity = velocity_a - velocity_b;
+		const auto v_r = velocity_a - velocity_b;
 		// relative velocity in the collision normal direction
-		const auto n_dot_vr = Terathon::Dot(relative_velocity, n);
+		const auto n_dot_vr = Terathon::Dot(v_r, n);
 		// n_dot_v is > 0 if the bodies are moving away from each other
-		if (n_dot_vr > 0) {
+		if (n_dot_vr >= 0) {
 			continue;
 		}
 
 		// coefficient of restitution is the ratio of the relative velocity of
 		// separation after collision to the relative velocity of approach before collision.
 		// it is a property of BOTH collision objects (their "bounciness").
-		const auto cor = 0.75f;
+		const auto cor = (rb_a ? rb_a->elasticity : sb_a->elasticity) * (rb_b ? rb_b->elasticity : sb_b->elasticity);
 
 		const auto inv_mass_a = rb_a ? 1.0f/rb_a->mass : 0.0f;
 		const auto inv_mass_b = rb_b ? 1.0f/rb_b->mass : 0.0f;
@@ -94,18 +93,25 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 				)
 			)
 		);
-		const auto impulse = impulse_magnitude * n;
+
+		// add impulse-based friction
+		const auto dynamic_friction_coefficient = 0.07;
+		const auto collision_tangent = Terathon::Normalize( v_r - (Terathon::Dot(v_r, n) * n) );
+		const auto friction_impulse = (
+			(impulse_magnitude * dynamic_friction_coefficient) * collision_tangent
+		);
+
+		const auto impulse = (impulse_magnitude * n) - friction_impulse;
 
 		// apply impulses only to rigid bodies
-
 		if (rb_a) {
 			rb_a->impulse += impulse;
 
 			const auto angular_impulse = Terathon::Cross(r_a, impulse);
 			if (angular_impulse != Terathon::Vector3D(0,0,0)) {
-				const auto str = Terathon::Magnitude(angular_impulse) * 0.1f / r_a_dist_squared;
+				auto str = Terathon::Magnitude(angular_impulse) * 0.1f / r_a_dist_squared;
 				const auto axis = Terathon::Normalize(angular_impulse);
-				rb_a->an_imp_div_sq_dst = Terathon::Quaternion::MakeRotation(str * 0.3, !axis);
+				rb_a->an_imp_div_sq_dst = Terathon::Quaternion::MakeRotation(str, !axis);
 			}
 		}
 		if (rb_b) {
@@ -113,9 +119,9 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 
 			const auto angular_impulse = Terathon::Cross(r_b, -impulse);
 			if (angular_impulse != Terathon::Vector3D(0,0,0)) {
-				const auto str = Terathon::Magnitude(angular_impulse) * 0.1f / r_b_dist_squared;
+				auto str = Terathon::Magnitude(angular_impulse) * 0.1f / r_b_dist_squared;
 				const auto axis = Terathon::Normalize(angular_impulse);
-				rb_b->an_imp_div_sq_dst = Terathon::Quaternion::MakeRotation(str * 0.3, !axis);
+				rb_b->an_imp_div_sq_dst = Terathon::Quaternion::MakeRotation(str, !axis);
 			}
 		}
 	}
