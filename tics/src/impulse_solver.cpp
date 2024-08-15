@@ -4,24 +4,26 @@
 
 using tics::ImpulseSolver;
 
-static void apply_impulse_at(
-	tics::RigidBody *rb, Terathon::Vector3D impulse, Terathon::Vector3D location
-) {
-	// body space collision point
-	const auto r = (
-		location - rb->get_transform().lock()->position
-	);
-	const auto angular_momentum_axis = Terathon::Cross(r, impulse);
+static Terathon::Vector3D get_velocity(tics::RigidBody *rb, const Terathon::Vector3D &point) {
+	const auto transform = rb->get_transform().lock();
 
-	const auto radians = Terathon::Magnitude(angular_momentum_axis) * 3.141f * 0.01f * 1.5f;
-	const auto axis = Terathon::Normalize(angular_momentum_axis);
+	// move to local space of rigid body
+	auto local_p = point - transform->position;
+	local_p = Terathon::Transform(local_p, Terathon::Inverse(transform->rotation));
+	// "move" the point according to the angular velocity
+	const auto local_rotated_p = Terathon::Transform(local_p, rb->angular_velocity);
+	// convert back to world space
+	auto world_rotated_p = Terathon::Transform(local_rotated_p, transform->rotation);
+	world_rotated_p += transform->position;
 
-	rb->angular_impulse = Terathon::Quaternion::MakeRotation(
-		radians,
-		!axis
-	);
+	// move to local space of rigid body
+	const auto prev_local = point - transform->position;
+	// "move" the point according to the angular velocity
+	// not quite sure why, but for some reason the movement is "backwards"
+	const auto prev_rotated = Terathon::Transform(prev_local, rb->angular_velocity);
+	const auto rotation_distance = (prev_rotated - prev_local) * (10.0f * -1.0f);
 
-	return;
+	return rotation_distance + rb->velocity;
 }
 
 void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
@@ -46,12 +48,26 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 		// 	|| (rb_b && rb_b->impulse != Terathon::Vector3D(0,0,0))
 		// ) { continue; }
 
-		const auto velocity_a = rb_a ? rb_a->velocity : Terathon::Vector3D(0.0, 0.0, 0.0);
-		const auto velocity_b = rb_b ? rb_b->velocity : Terathon::Vector3D(0.0, 0.0, 0.0);
+		const auto velocity_a = rb_a ? get_velocity(rb_a, collision.points.a) : Terathon::Vector3D(0.0, 0.0, 0.0);
+		const auto velocity_b = rb_b ? get_velocity(rb_b, collision.points.b) : Terathon::Vector3D(0.0, 0.0, 0.0);
+
+		const auto r_a = collision.points.a - sp_a->get_transform().lock()->position;
+		const auto r_b = collision.points.b - sp_b->get_transform().lock()->position;
+
+		auto r_a_dist_squared = Terathon::Magnitude(r_a);
+		r_a_dist_squared *= r_a_dist_squared;
+		auto r_b_dist_squared = Terathon::Magnitude(r_b);
+		r_b_dist_squared *= r_b_dist_squared;
+
+		const auto n = collision.points.normal;
+
 		const auto relative_velocity = velocity_a - velocity_b;
 		// relative velocity in the collision normal direction
-		const auto n_dot_v = Terathon::Dot(relative_velocity, collision.points.normal);
+		const auto n_dot_vr = Terathon::Dot(relative_velocity, n);
 		// n_dot_v is > 0 if the bodies are moving away from each other
+		if (n_dot_vr > 0) {
+			continue;
+		}
 
 		// coefficient of restitution is the ratio of the relative velocity of
 		// separation after collision to the relative velocity of approach before collision.
@@ -61,23 +77,46 @@ void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
 		const auto inv_mass_a = rb_a ? 1.0f/rb_a->mass : 0.0f;
 		const auto inv_mass_b = rb_b ? 1.0f/rb_b->mass : 0.0f;
 
-		// from my "game physics" lecture
-		// an impulse models an instantaneous change in momentum, unit: m/s * kg
-		const auto impulse_magnitude = (-(1.0f + cor) * n_dot_v) / ( inv_mass_a + inv_mass_b );
-		const auto impulse = impulse_magnitude * collision.points.normal;
+		const auto inv_moment_of_inertia_a = rb_a
+			? 1.0f/(rb_a->mass * r_a_dist_squared)
+			: 0.0f;
+		const auto inv_moment_of_inertia_b = rb_b
+			? 1.0f/(rb_b->mass * r_b_dist_squared)
+			: 0.0f;
+
+		// https://en.wikipedia.org/wiki/Collision_response
+		const auto impulse_magnitude = (
+			(-(1.0f + cor) * n_dot_vr)
+			/ (
+				inv_mass_a + inv_mass_b + Terathon::Dot(n,
+					  inv_moment_of_inertia_a * (Terathon::Cross(Terathon::Cross(r_a, n), r_a))
+					+ inv_moment_of_inertia_b * (Terathon::Cross(Terathon::Cross(r_b, n), r_b))
+				)
+			)
+		);
+		const auto impulse = impulse_magnitude * n;
 
 		// apply impulses only to rigid bodies
 
-		// this is just what worked best, the formula is probably very wrong
-		const auto other_impulse = impulse_magnitude * Terathon::Normalize(relative_velocity);
-
 		if (rb_a) {
 			rb_a->impulse += impulse;
-			apply_impulse_at(rb_a, -other_impulse, collision.points.a);
+
+			const auto angular_impulse = Terathon::Cross(r_a, impulse);
+			if (angular_impulse != Terathon::Vector3D(0,0,0)) {
+				const auto str = Terathon::Magnitude(angular_impulse) * 0.1f / r_a_dist_squared;
+				const auto axis = Terathon::Normalize(angular_impulse);
+				rb_a->an_imp_div_sq_dst = Terathon::Quaternion::MakeRotation(str * 0.3, !axis);
+			}
 		}
 		if (rb_b) {
 			rb_b->impulse -= impulse;
-			apply_impulse_at(rb_b,  other_impulse, collision.points.b);
+
+			const auto angular_impulse = Terathon::Cross(r_b, -impulse);
+			if (angular_impulse != Terathon::Vector3D(0,0,0)) {
+				const auto str = Terathon::Magnitude(angular_impulse) * 0.1f / r_b_dist_squared;
+				const auto axis = Terathon::Normalize(angular_impulse);
+				rb_b->an_imp_div_sq_dst = Terathon::Quaternion::MakeRotation(str * 0.3, !axis);
+			}
 		}
 	}
 }

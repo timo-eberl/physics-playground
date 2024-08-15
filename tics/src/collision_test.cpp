@@ -38,7 +38,7 @@ Terathon::Vector3D support_point_mesh(
 
 	const auto &collider = static_cast<const MeshCollider&>(c);
 
-	const auto local_d = Terathon::Transform(d, t.rotation);
+	const auto local_d = Terathon::Transform(d, Terathon::Inverse(t.rotation));
 
 	// find the support point in local space
 	auto support_point_dot = -1.0;
@@ -58,7 +58,13 @@ Terathon::Vector3D support_point_mesh(
 	// this fails if the center position of a mesh is not inside the mesh
 	assert(support_point_dot >= 0.0);
 
-	support_point = Terathon::Transform(support_point, Terathon::Inverse(t.rotation));
+	const auto R0 = Terathon::Quaternion::MakeRotation(
+		3.141 * 0.05, Terathon::Bivector3D(1,0,0)
+	);
+	const auto v0_ = Terathon::Transform(Terathon::Vector3D(1,1,1), R0);
+	const auto v0 = Terathon::Transform(v0_, Terathon::Inverse(R0));
+
+	support_point = Terathon::Transform(support_point, t.rotation);
 	support_point = support_point + t.position;
 
 	return support_point;
@@ -462,8 +468,8 @@ CollisionPoints collision_test_mesh_mesh(
 			const auto w = abp_area / face_area; // c
 			// reconstruct p to see if the barycentric coordinates are correct
 			const auto p_reconstructed = ( a.m * u + b.m * v + c.m * w );
-			const auto reconstructed_distance = Terathon::Magnitude(p_reconstructed - p);
 			// sometimes the values are off, because p does not lie on the plane abc which is the fault of EPA
+			// const auto reconstructed_distance = Terathon::Magnitude(p_reconstructed - p);
 			// std::cout << "reconstructed_distance: " << reconstructed_distance << "\n";
 			// if (reconstructed_distance > 2.00) {
 			// 	std::cout << "alarm\n";

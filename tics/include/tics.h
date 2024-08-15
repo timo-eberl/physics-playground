@@ -14,6 +14,8 @@
 namespace tics {
 
 struct Transform {
+	Terathon::Motor3D motor = Terathon::Motor3D::identity;
+
 	Terathon::Vector3D position = Terathon::Vector3D(0,0,0);
 	Terathon::Quaternion rotation = Terathon::Quaternion::identity;
 };
@@ -62,7 +64,7 @@ struct CollisionPoints {
 	// the penetration vector points from a to b / from shape b to shape a
 	Terathon::Vector3D a;
 	Terathon::Vector3D b;
-	Terathon::Vector3D normal; //penetration vector direction
+	Terathon::Vector3D normal; // penetration vector direction
 	float depth; // penetration vector length
 	bool has_collision = false;
 };
@@ -108,6 +110,8 @@ public:
 	virtual void set_transform(const std::weak_ptr<Transform> transform) override;
 	virtual std::weak_ptr<Transform> get_transform() const override;
 
+	Terathon::Motor3D motor_velocity = Terathon::Motor3D::identity;
+
 	Terathon::Vector3D velocity = Terathon::Vector3D(0,0,0);
 	// !! unit: rad / 0.01 s !!
 	Terathon::Quaternion angular_velocity = Terathon::Quaternion::identity;
@@ -115,12 +119,11 @@ public:
 	// accumulated, applied and reset every frame
 	// an impulse is an instantaneous change in momentum
 	Terathon::Vector3D impulse = Terathon::Vector3D(0,0,0);
-	// an angular impulse is an instantaneous change in angular momentum
-	// !! unit: rad / 0.01 s !!
-	Terathon::Quaternion angular_impulse = Terathon::Quaternion::identity;
+	// angular impulse (instantaneous change in angular momentum) divided by square distance to the application pos
+	// !! unit: kg*rad / 0.01 s !!
+	Terathon::Quaternion an_imp_div_sq_dst = Terathon::Quaternion::identity;
 
 	float mass = 1.0f;
-	float moment_of_inertia = 8.0f; // unit: kg*m²
 	float gravity_scale = 1.0f;
 private:
 	std::weak_ptr<Collider> m_collider;

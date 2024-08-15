@@ -2,6 +2,7 @@
 
 #include <tics.h>
 #include <ron.h>
+#include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,7 +23,6 @@ struct StaticObject {
 	const std::shared_ptr<tics::StaticBody> static_body;
 	const std::shared_ptr<tics::Transform> transform;
 	const std::shared_ptr<tics::MeshCollider> collider;
-	std::shared_ptr<ron::MeshNode> mesh_node;
 };
 
 glm::mat4 transform_to_model_matrix(const tics::Transform &transform) {
@@ -73,7 +73,7 @@ Sphere create_sphere(
 		std::make_shared<tics::RigidBody>(),
 		std::make_shared<tics::Transform>(),
 		std::make_shared<tics::MeshCollider>(),
-		ron::gltf::import("models/icosphere_lowres.glb").get_mesh_nodes().front(),
+		ron::gltf::import("models/cube.glb").get_mesh_nodes().front(),
 	});
 
 	sphere.rigid_body->set_collider(sphere.collider);
@@ -101,7 +101,7 @@ Sphere create_sphere(
 	cloned_mesh_node->get_mesh()->sections.front().material = material;
 	sphere.mesh_node = cloned_mesh_node;
 
-	const auto geometry = ron::gltf::import("models/icosphere_lowres_smooth.glb").get_mesh_nodes()
+	const auto geometry = ron::gltf::import("models/cube.glb").get_mesh_nodes()
 		.front()->get_mesh()->sections.front().geometry;
 	// apply scale to collision mesh
 	for (auto &position : geometry->positions) {
@@ -125,13 +125,12 @@ std::shared_ptr<std::vector<StaticObject>> create_static_objects(const std::stri
 			std::make_shared<tics::StaticBody>(),
 			std::make_shared<tics::Transform>(),
 			std::make_shared<tics::MeshCollider>(),
-			mesh_node,
 		};
 
 		const auto center = mesh_node->get_model_matrix() * glm::vec4(0,0,0,1);
 		static_object.transform->position = Terathon::Vector3D(center.x,center.y,center.z);
 
-		const auto ground_geometry = static_object.mesh_node->get_mesh()->sections.front().geometry;
+		const auto ground_geometry = mesh_node->get_mesh()->sections.front().geometry;
 		static_object.collider->indices = ground_geometry->indices;
 		for (const auto &vertex_pos : ground_geometry->positions) {
 			static_object.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));

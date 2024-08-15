@@ -167,16 +167,16 @@ ProgramState initialize(GLFWwindow* window) {
 		Terathon::Quaternion::identity,
 		*scene, glm::vec3(0.2, 0.2, 0.8)
 	);
-	// sphere_1.transform->rotation = Terathon::Quaternion::MakeRotationZ(3.141 * 0.25);
+	sphere_1.transform->rotation = Terathon::Quaternion::MakeRotationZ(3.141 * 0.05);
 	spheres->emplace_back(sphere_1);
 	physics_world.add_object(sphere_1.rigid_body);
 	scene->add(sphere_1.mesh_node);
 
 	// add static geometry
-	auto static_geometry = create_static_objects("models/ground.glb");
+	auto static_geometry = create_static_objects("models/ground_smooth.glb");
 	for (const auto &static_object : *static_geometry) {
 		physics_world.add_object(static_object.static_body);
-		scene->add(static_object.mesh_node);
+		scene->add(ron::gltf::import("models/ground.glb"));
 	}
 
 	// area trigger that turns objects red that are inside it
