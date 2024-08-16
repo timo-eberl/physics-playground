@@ -105,8 +105,7 @@ CollisionPoints collision_test_mesh_mesh(
 	simplex[0] = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
 
 	// the next direction is towards the origin
-	// FIXME: probably the normalize can be removed?
-	d = Terathon::Normalize( - simplex[0].m );
+	d = - simplex[0].m;
 
 	// find the second support point
 	simplex[1] = support_point_on_minkowski_diff_mesh_mesh(a_collider, ta, b_collider, tb, d);
@@ -120,8 +119,7 @@ CollisionPoints collision_test_mesh_mesh(
 	const auto AO =              - simplex[1].m;
 
 	// triple product: vector perpendicular to AB pointing toward the origin
-	// FIXME: probably the normalize can be removed?
-	d = Terathon::Normalize ( Terathon::Cross ( Terathon::Cross (AB, AO), AB ) );
+	d = Terathon::Cross ( Terathon::Cross (AB, AO), AB );
 
 	
 	// find the third support point
@@ -140,10 +138,8 @@ CollisionPoints collision_test_mesh_mesh(
 
 		// triple products to define regions R_AB and R_AC
 		const auto ABC_normal = Terathon::Cross(AB, AC);
-		// FIXME: probably the normalize can be removed?
-		const auto AB_normal = Terathon::Normalize( Terathon::Cross( Terathon::Cross(AC, AB), AB ) );
-		// FIXME: probably the normalize can be removed?
-		const auto AC_normal = Terathon::Normalize( Terathon::Cross( ABC_normal, AC ) );
+		const auto AB_normal = Terathon::Cross( Terathon::Cross(AC, AB), AB );
+		const auto AC_normal = Terathon::Cross( ABC_normal, AC );
 
 		// TODO: Add check if the origin lies on the line AB or AC
 
@@ -164,15 +160,13 @@ CollisionPoints collision_test_mesh_mesh(
 
 			if (Terathon::Dot( ABC_normal, AO ) > 0) {
 				// above ABC
-				// FIXME: probably the normalize can be removed?
-				d = Terathon::Normalize(ABC_normal);
+				d = ABC_normal;
 			}
 			else {
 				// below ABC
 				// swap current C and B (change winding order), so we are above ABC again
 				const auto B = simplex[1]; simplex[1] = simplex[0]; simplex[0] = B;
-				// FIXME: probably the normalize can be removed?
-				d = - Terathon::Normalize(ABC_normal);
+				d = -ABC_normal;
 			}
 
 			break;
