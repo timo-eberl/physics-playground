@@ -41,7 +41,7 @@ static Terathon::Vector3D get_velocity(tics::RigidBody *rb, const Terathon::Vect
 #endif
 }
 
-void ImpulseSolver::solve(std::vector<Collision>& collisions, float delta) {
+void ImpulseSolver::solve(const std::vector<Collision>& collisions, float delta) {
 	for (auto collision : collisions) {
 		auto sp_a = collision.a.lock();
 		auto sp_b = collision.b.lock();

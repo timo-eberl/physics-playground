@@ -388,7 +388,7 @@ CollisionPoints collision_test_mesh_mesh(
 			return collision_points;
 		}
 	}
-	std::cout << "Terminating GJK (stuck in a loop)\n";
+	// std::cout << "Terminating GJK (stuck in a loop)\n";
 	return CollisionPoints(); // workaround
 }
 

@@ -59,6 +59,9 @@ static ProgramState initialize(GLFWwindow* window);
 static void process(GLFWwindow* window, ProgramState& state);
 static void render(GLFWwindow* window, ProgramState& state);
 
+const int res_x = 1000;
+const int res_y = 600;
+
 int main() {
 	glfwInit();
 
@@ -68,7 +71,7 @@ int main() {
 	// tell GLFW we want to use the core-profile -> no backwards-compatible features
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(1280, 720, "Physics Playground", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(res_x, res_y, "Physics Playground", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
@@ -148,9 +151,10 @@ ProgramState initialize(GLFWwindow* window) {
 	// renderer setup
 	auto scene = std::make_shared<ron::Scene>();
 	scene->set_directional_light(create_generic_light());
-	auto renderer = std::make_unique<ron::OpenGLRenderer>(1280, 720);
+	auto renderer = std::make_unique<ron::OpenGLRenderer>(res_x, res_y);
 	renderer->set_clear_color(glm::vec4(0.1, 0.1, 0.1, 1.0));
-	renderer->render_axes = true;
+	// renderer->render_axes = true;
+	// renderer->render_grid = true;
 	// camera setup
 	const auto initial_camera_rotation = glm::vec2(glm::radians(-24.2f), glm::radians(63.6f));
 	auto camera_controls = ron::CameraViewportControls(initial_camera_rotation);
@@ -162,20 +166,106 @@ ProgramState initialize(GLFWwindow* window) {
 	auto spheres = std::make_shared<std::vector<Sphere>>();
 
 	// initial sphere
-	auto sphere_1 = create_sphere(
-		Terathon::Vector3D(0.0, 1.5, 0.25), Terathon::Vector3D(0.0, 8.0, 0.0),
-		Terathon::Quaternion::identity,
-		*scene, glm::vec3(0.2, 0.2, 0.8)
-	);
+	// auto sphere_1 = create_sphere(
+	// 	Terathon::Vector3D(0.0, 1.5, 0.25), Terathon::Vector3D(0.0, 8.0, 0.0),
+	// 	Terathon::Quaternion::identity,
+	// 	*scene, glm::vec3(0.2, 0.2, 0.8)
+	// );
+// #ifdef TICS_GA
+// 	sphere_1.transform->motor = sphere_1.transform->motor * Terathon::Quaternion::MakeRotationZ(3.141 * 0.05);
+// #else
+// 	sphere_1.transform->rotation = Terathon::Quaternion::MakeRotationZ(3.141 * 0.05);
+// #endif
+// 	spheres->emplace_back(sphere_1);
+// 	physics_world.add_object(sphere_1.rigid_body);
+// 	scene->add(sphere_1.mesh_node);
 
-#ifdef TICS_GA
-	sphere_1.transform->motor = sphere_1.transform->motor * Terathon::Quaternion::MakeRotationZ(3.141 * 0.05);
-#else
-	sphere_1.transform->rotation = Terathon::Quaternion::MakeRotationZ(3.141 * 0.05);
-#endif
-	spheres->emplace_back(sphere_1);
-	physics_world.add_object(sphere_1.rigid_body);
-	scene->add(sphere_1.mesh_node);
+	const Terathon::Vector3D positions [10] = {
+		Terathon::Vector3D( 1,1+2, 1) * 1.2f,
+		Terathon::Vector3D( 2,2+2, 2) * 1.2f,
+		Terathon::Vector3D(-3,3+2, 3) * 1.2f,
+		Terathon::Vector3D(-4,1+2, 4) * 1.2f,
+		Terathon::Vector3D(-3,2+2, 3) * 1.2f,
+		Terathon::Vector3D(-1,3+2,-1) * 1.2f,
+		Terathon::Vector3D(-2,1+2,-2) * 1.2f,
+		Terathon::Vector3D( 3,2+2,-3) * 1.2f,
+		Terathon::Vector3D( 4,3+2,-4) * 1.2f,
+		Terathon::Vector3D( 3,1+2,-2) * 1.2f
+	};
+
+	const float scales [10] = {
+		0.9,
+		1.3,
+		2.0,
+		1.2,
+		1.3,
+		0.8,
+		0.9,
+		1.3,
+		1.7,
+		1.2
+	};
+
+	const float elasticities [10] = {
+		0.9,
+		0.9,
+		0.8,
+		0.85,
+		0.8,
+		0.95,
+		1.0,
+		0.75,
+		0.8,
+		0.95
+	};
+
+	// 10x simplex 10s -- ga d: 2032ns, cd: 90884ns, cr: 5033ns
+	// 10x simplex 10s -- la d: 1966ns, cd: 81693ns, cr: 4067ns
+
+	// 20xSimplex10sLA: la d: 3266ns, cd: 196279ns, cr: 6618ns
+	// 20xSimplex10sGA: ga d: 2840ns, cd: 224019ns, cr: 7744ns
+	// 21xSimplex10sLA: la d: 3458ns, cd: 213139ns, cr: 6959ns
+	// 21xSimplex10sGA: ga d: 2760ns, cd: 225415ns, cr: 8026ns
+	// 21xIcosphere10sLA: la d: 3285ns, cd: 287990ns, cr: 7634ns
+	// 21xIcosphere10sGA: ga d: 2872ns, cd: 313519ns, cr: 9549ns
+	// 100xIcosphere10sGA: ga d: 8836ns, cd: 3017671ns, cr: 46996ns
+	// 100xIcosphere10sLA: la d: 11055ns, cd: 3074072ns, cr: 44397ns
+	// 100xIcosphere10sLA_CDGA: la d: 10370ns, cd: 2785935ns, cr: 41888ns
+	// 							la d: 11387ns, cd: 3032901ns, cr: 45025ns
+	// 							la d: 11439ns, cd: 3011314ns, cr: 44895ns
+	// 100xIcosphereHighres10sGA: 	ga d: 9473ns, cd: 4459003ns, cr: 52146ns
+	// 								ga d: 9371ns, cd: 4302813ns, cr: 50911ns
+	// 100xIcosphereHighres10sLA: 	la d: 11205ns, cd: 4415956ns, cr: 42248ns
+	// 21xIcosphereHighres20sGA: 	ga d: 2770ns, cd: 404380ns, cr: 11554ns
+	// 								ga d: 2797ns, cd: 418571ns, cr: 11653ns
+	// 21xIcosphereHighres20sLA: 	la d: 3320ns, cd: 414524ns, cr: 9496ns
+	// 								la d: 3233ns, cd: 408939ns, cr: 9569ns
+	// 21xIcosphereHighres20sNoCrGA: 	ga d: 2939ns, cd: 368144ns, cr: 30ns
+	// 							debug	ga d: 33487ns, cd: 4234190ns, cr: 25ns
+	// 21xIcosphereHighres20sNoCrLA: 	la d: 3455ns, cd: 361200ns, cr: 30ns
+	// 							debug	la d: 27099ns, cd: 3980621ns, cr: 24ns
+	// 21xIcosphereHighres20sNoCr2GA: 	ga d: 2743ns, cd: 459380ns, cr: 27ns
+	// 21xIcosphereHighres20sNoCr2LA: 	la d: 3335ns, cd: 495508ns, cr: 29ns
+
+	// create some spheres
+	for (size_t i = 0; i < 21; i++) {
+		auto sphere = create_sphere(
+			positions[i % 10] + Terathon::Vector3D(0,i/10,0)*2.0f,
+			Terathon::Vector3D(0,0,0), // velocity
+			Terathon::Quaternion::MakeRotation(0.1, !Terathon::Normalize(positions[i%10])),
+			*scene,
+			glm::vec3( // color
+				static_cast<double>(std::rand()) / RAND_MAX,
+				static_cast<double>(std::rand()) / RAND_MAX,
+				static_cast<double>(std::rand()) / RAND_MAX
+			),
+			scales[i % 10],
+			elasticities[i % 10]
+		);
+		spheres->emplace_back(sphere);
+		physics_world.add_object(sphere.rigid_body);
+		scene->add(sphere.mesh_node);
+	}
 
 	// add static geometry
 	auto static_geometry = create_static_objects("models/ground_smooth.glb");
@@ -247,7 +337,7 @@ ProgramState initialize(GLFWwindow* window) {
 	auto collision_area_solver = std::make_shared<tics::CollisionAreaSolver>();
 	physics_world.add_solver(impulse_solver);
 	physics_world.add_solver(position_solver);
-	physics_world.add_solver(collision_area_solver);
+	// physics_world.add_solver(collision_area_solver);
 
 	renderer->preload(*scene);
 
@@ -258,7 +348,7 @@ ProgramState initialize(GLFWwindow* window) {
 		spheres,
 		static_geometry,
 		area_trigger,
-		ron::PerspectiveCamera(60.0f, 1280.0f/720.0f, 0.1f, 1000.0f),
+		ron::PerspectiveCamera(60.0f, (float)(res_x)/(float)(res_y), 0.1f, 1000.0f),
 		camera_controls,
 		scene,
 		std::move(renderer),
@@ -280,47 +370,56 @@ void process(GLFWwindow* window, ProgramState& state) {
 	auto start_time_point = std::chrono::high_resolution_clock::now();
 
 	// create spheres with random size and color
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT == GLFW_PRESS)) {
-		auto sphere = create_sphere(
-			Terathon::Vector3D( // position
-				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*1.0,
-				(0.5-static_cast<double>(std::rand()) / RAND_MAX) + 3.0,
-				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*1.0
-			),
-			Terathon::Vector3D( // velocity
-				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5,
-				(    static_cast<double>(std::rand()) / RAND_MAX)*5,
-				(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5
-			),
-			Terathon::Quaternion::identity, // angular velocity
-			// Terathon::Quaternion::MakeRotation(
-			// 	//angle
-			// 	3.141 * 2 * static_cast<float>(std::rand()) / RAND_MAX * 0.2,
-			// 	// axis
-			// 	!Terathon::Normalize(Terathon::Vector3D(
-			// 		static_cast<float>(std::rand()) / RAND_MAX,
-			// 		static_cast<float>(std::rand()) / RAND_MAX,
-			// 		static_cast<float>(std::rand()) / RAND_MAX
-			// 	))
-			// ),
-			*(state.render_scene),
-			glm::vec3( // color
-				static_cast<double>(std::rand()) / RAND_MAX,
-				static_cast<double>(std::rand()) / RAND_MAX,
-				static_cast<double>(std::rand()) / RAND_MAX
-			),
-			// scale
-			0.5 + 0.5 * static_cast<double>(std::rand()) / RAND_MAX,
-			0.8 + 0.2 * static_cast<double>(std::rand()) / RAND_MAX
-		);
+	// if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT == GLFW_PRESS)) {
+	// 	auto sphere = create_sphere(
+	// 		Terathon::Vector3D( // position
+	// 			(0.5-static_cast<double>(std::rand()) / RAND_MAX)*1.0,
+	// 			(0.5-static_cast<double>(std::rand()) / RAND_MAX) + 3.0,
+	// 			(0.5-static_cast<double>(std::rand()) / RAND_MAX)*1.0
+	// 		),
+	// 		Terathon::Vector3D( // velocity
+	// 			(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5,
+	// 			(    static_cast<double>(std::rand()) / RAND_MAX)*5,
+	// 			(0.5-static_cast<double>(std::rand()) / RAND_MAX)*5
+	// 		),
+	// 		Terathon::Quaternion::identity, // angular velocity
+	// 		// Terathon::Quaternion::MakeRotation(
+	// 		// 	//angle
+	// 		// 	3.141 * 2 * static_cast<float>(std::rand()) / RAND_MAX * 0.2,
+	// 		// 	// axis
+	// 		// 	!Terathon::Normalize(Terathon::Vector3D(
+	// 		// 		static_cast<float>(std::rand()) / RAND_MAX,
+	// 		// 		static_cast<float>(std::rand()) / RAND_MAX,
+	// 		// 		static_cast<float>(std::rand()) / RAND_MAX
+	// 		// 	))
+	// 		// ),
+	// 		*(state.render_scene),
+	// 		glm::vec3( // color
+	// 			static_cast<double>(std::rand()) / RAND_MAX,
+	// 			static_cast<double>(std::rand()) / RAND_MAX,
+	// 			static_cast<double>(std::rand()) / RAND_MAX
+	// 		),
+	// 		// scale
+	// 		0.5 + 0.5 * static_cast<double>(std::rand()) / RAND_MAX,
+	// 		0.8 + 0.2 * static_cast<double>(std::rand()) / RAND_MAX
+	// 	);
 
-		state.spheres->emplace_back(sphere);
-		state.physics_world.add_object(sphere.rigid_body);
-		state.render_scene->add(sphere.mesh_node);
+	// 	state.spheres->emplace_back(sphere);
+	// 	state.physics_world.add_object(sphere.rigid_body);
+	// 	state.render_scene->add(sphere.mesh_node);
+	// }
+
+
+	const float time_scale = 1.0f;
+	const float delta = time_scale/60.0f;
+
+	const float time_limit = 20.0f; // seconds
+	static float total_time = 0;
+
+	if (total_time < time_limit) {
+		state.physics_world.update(delta);
+		total_time += delta;
 	}
-
-	float time_scale = 1.0f;
-	state.physics_world.update(time_scale/60.0f);
 
 	const auto physics_time = std::chrono::high_resolution_clock::now() - start_time_point;
 	++accumulated_physics_time_count;

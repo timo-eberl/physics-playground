@@ -163,7 +163,7 @@ class ISolver {
 public:
 	virtual ~ISolver() {};
 
-	virtual void solve(std::vector<Collision>& collisions, float delta) = 0;
+	virtual void solve(const std::vector<Collision>& collisions, float delta) = 0;
 };
 
 class World {
@@ -176,7 +176,8 @@ public:
 
 	void update(const float delta);
 
-	void resolve_collisions(const float delta);
+	std::vector<Collision> collision_detection(const float delta);
+	void collision_response(const float delta, const std::vector<Collision> &collisions);
 
 	void set_gravity(const Terathon::Vector3D gravity);
 	void set_collision_event(const std::function<void(const Collision&)> collision_event);
@@ -191,14 +192,14 @@ class ImpulseSolver : public ISolver {
 public:
 	~ImpulseSolver() {};
 
-	virtual void solve(std::vector<Collision>& collisions, float delta) override;
+	virtual void solve(const std::vector<Collision>& collisions, float delta) override;
 };
 
 class NonIntersectionConstraintSolver : public ISolver {
 public:
 	~NonIntersectionConstraintSolver() {};
 
-	virtual void solve(std::vector<Collision>& collisions, float delta) override;
+	virtual void solve(const std::vector<Collision>& collisions, float delta) override;
 };
 
 struct ObjectAndCollisionData {
@@ -211,7 +212,7 @@ class CollisionAreaSolver : public ISolver {
 public:
 	~CollisionAreaSolver() {};
 
-	virtual void solve(std::vector<Collision>& collisions, float delta) override;
+	virtual void solve(const std::vector<Collision>& collisions, float delta) override;
 private:
 	typedef std::map< CollisionArea *, std::vector<ObjectAndCollisionData> >
 		AreasCollisionRecord;

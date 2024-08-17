@@ -17,7 +17,7 @@ static void add_pos_offset(tics::ICollisionObject &object, Terathon::Vector3D of
 	#endif
 }
 
-void NonIntersectionConstraintSolver::solve(std::vector<Collision>& collisions, float delta) {
+void NonIntersectionConstraintSolver::solve(const std::vector<Collision>& collisions, float delta) {
 	for (auto collision : collisions) {
 		auto sp_a = collision.a.lock();
 		auto sp_b = collision.b.lock();

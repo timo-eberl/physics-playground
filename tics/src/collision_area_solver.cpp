@@ -4,7 +4,7 @@
 
 using tics::CollisionAreaSolver;
 
-void CollisionAreaSolver::solve(std::vector<Collision>& collisions, float delta) {
+void CollisionAreaSolver::solve(const std::vector<Collision>& collisions, float delta) {
 	AreasCollisionRecord current_collisions = {};
 
 	for (const auto &collision : collisions) {

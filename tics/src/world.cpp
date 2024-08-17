@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <chrono>
+
+using namespace std::chrono_literals;
 
 using tics::World;
 
@@ -131,8 +134,21 @@ static void apply_dynamics(tics::RigidBody &rigid_body, const float delta, const
 }
 
 void World::update(const float delta) {
-	resolve_collisions(delta);
+	static std::vector<std::chrono::nanoseconds> dynamics_times;
+	static std::vector<std::chrono::nanoseconds> collision_detection_times;
+	static std::vector<std::chrono::nanoseconds> collision_response_times;
 
+	const auto cd_start = std::chrono::high_resolution_clock::now();
+	const auto collisions = collision_detection(delta);
+	const auto cd_time = std::chrono::high_resolution_clock::now() - cd_start;
+	collision_detection_times.push_back(cd_time);
+
+	const auto cr_start = std::chrono::high_resolution_clock::now();
+	// collision_response(delta, collisions);
+	const auto cr_time = std::chrono::high_resolution_clock::now() - cr_start;
+	collision_response_times.push_back(cr_time);
+
+	const auto d_start = std::chrono::high_resolution_clock::now();
 	// dynamics
 	for (auto wp_object : m_objects) {
 		if (auto sp_object = wp_object.lock()) {
@@ -141,9 +157,33 @@ void World::update(const float delta) {
 			apply_dynamics(*rigid_body, delta, m_gravity);
 		}
 	}
+	const auto d_time = std::chrono::high_resolution_clock::now() - d_start;
+	dynamics_times.push_back(d_time);
+
+	std::chrono::nanoseconds cd_total = 0ns;
+	for (const auto &t : collision_detection_times) { cd_total += t; }
+	std::chrono::nanoseconds cr_total = 0ns;
+	for (const auto &t : collision_response_times) { cr_total += t; }
+	std::chrono::nanoseconds d_total = 0ns;
+	for (const auto &t : dynamics_times) { d_total += t; }
+
+	static int i = 0;
+	if (i%10 == 0) {
+		std::cout
+#ifdef TICS_GA
+			<< "ga "
+#else
+			<< "la "
+#endif
+			<< "d: " << d_total / dynamics_times.size() << ", "
+			<< "cd: " << cd_total / collision_detection_times.size() << ", "
+			<< "cr: " << cr_total / collision_response_times.size()
+		<< "\n";
+	}
+	i++;
 }
 
-void World::resolve_collisions(const float delta) {
+std::vector<tics::Collision> World::collision_detection(const float delta) {
 	std::vector<Collision> collisions;
 
 	for (auto wp_a : m_objects) {
@@ -177,6 +217,10 @@ void World::resolve_collisions(const float delta) {
 		}
 	}
 
+	return collisions;
+}
+
+void World::collision_response(const float delta, const std::vector<tics::Collision> &collisions) {
 	for (const auto& collision : collisions) {
 		if (m_collision_event) { m_collision_event(collision); }
 	}
