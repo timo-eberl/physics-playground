@@ -159,7 +159,7 @@ ProgramState initialize(GLFWwindow* window) {
 	// raycasting setup - first target
 	RaycastTarget raycast_target = {
 		std::make_shared<tics::MeshCollider>(),
-		ron::gltf::import("models/suzanne.glb").get_mesh_nodes().front()
+		ron::gltf::import("models/suzanne_high_res.glb").get_mesh_nodes().front()
 	};
 	const auto raycast_target_geometry = raycast_target.mesh_node->get_mesh()->sections.front().geometry;
 	// copy positions and inidices to MeshCollider
@@ -283,11 +283,17 @@ void process(GLFWwindow* window, ProgramState& state) {
 	}
 
 	// RaycastHitLA: 				avg time: 1042900ns
+	// 					windows 	avg time: 1175602ns
 	// RaycastHitGA: 				avg time: 1237085ns
+	// 					windows 	avg time: 1381974ns
 	// RaycastHitGAPreEdge: 		avg time: 1209924ns
+	// 					windows 	avg time: 1273892ns
 	// RaycastMissLowresLA: 		avg time:   11416ns
+	// 					windows 	avg time:   14805ns
 	// RaycastMissLowresGA: 		avg time:   11941ns
+	// 					windows 	avg time:   15924ns
 	// RaycastMissLowresGAPreEdge: 	avg time:   12118ns
+	// 					windows 	avg time:   14374ns
 
 	// performance measuring
 	if (pga) {
@@ -308,7 +314,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 
 		const auto ga_start_time_point = std::chrono::high_resolution_clock::now();
 		const bool ga_raycast_hit = tics::pga_raycast(
-			*state.raycast_target.collider, cam_pos + Terathon::Vector3D(0,0,0), direction
+			*state.raycast_target.collider, cam_pos + Terathon::Vector3D(0,1,0), direction
 		);
 		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - ga_start_time_point;
 		raycast_times.push_back(ray_cast_time);
@@ -331,7 +337,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 
 		const auto la_start_time_point = std::chrono::high_resolution_clock::now();
 		const bool la_raycast_hit = tics::raycast(
-			*state.raycast_target.collider, cam_pos + Terathon::Vector3D(0,0,0), direction
+			*state.raycast_target.collider, cam_pos + Terathon::Vector3D(0,1,0), direction
 		);
 		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - la_start_time_point;
 		raycast_times.push_back(ray_cast_time);
