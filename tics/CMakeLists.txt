@@ -6,7 +6,6 @@ set (CMAKE_CXX_STANDARD 20) # Require C++20
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Dependencies
-add_subdirectory (${CMAKE_CURRENT_SOURCE_DIR}/../geomath ${CMAKE_CURRENT_BINARY_DIR}/geomath)
 add_subdirectory (${CMAKE_CURRENT_SOURCE_DIR}/../terathonmath ${CMAKE_CURRENT_BINARY_DIR}/terathonmath)
 
 # Our Project
@@ -23,5 +22,4 @@ set(SOURCES
 )
 add_library(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC include)
-target_link_libraries(${PROJECT_NAME} PUBLIC geomath)
 target_link_libraries(${PROJECT_NAME} PUBLIC terathonmath)

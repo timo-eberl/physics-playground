@@ -18,7 +18,7 @@
 
 using namespace std::chrono_literals;
 
-static const auto pga = false;
+static const auto pga = true;
 
 auto accumulated_render_time = 0ns;
 unsigned int accumulated_render_time_count = 0;
@@ -38,8 +38,6 @@ struct RaycastTarget {
 };
 
 struct ProgramState {
-	std::chrono::_V2::system_clock::time_point start_time_point;
-
 	RaycastTarget raycast_target;
 	RaycastTarget raycast_target_2;
 
@@ -189,7 +187,6 @@ ProgramState initialize(GLFWwindow* window) {
 	glfwSetScrollCallback(window, scroll_callback);
 
 	return ProgramState {
-		std::chrono::high_resolution_clock::now(),
 		raycast_target,
 		raycast_target_2,
 		ron::PerspectiveCamera(60.0f, 1280.0f/720.0f, 0.1f, 1000.0f),
@@ -212,16 +209,16 @@ void process(GLFWwindow* window, ProgramState& state) {
 
 	static std::vector<std::chrono::nanoseconds> raycast_times;
 
-	const auto time_since_start = std::chrono::high_resolution_clock::now() - state.start_time_point;
-	const auto time_since_start_s = time_since_start.count() / 1000000000.0;
-	const auto cos_time = cos( 2 * time_since_start_s );
+	// const auto time_since_start = std::chrono::high_resolution_clock::now() - state.start_time_point;
+	// const auto time_since_start_s = time_since_start.count() / 1000000000.0;
+	// const auto cos_time = cos( 2 * time_since_start_s );
 
 	const auto target_glm = state.camera_controls.get_target();
 	
 	auto glm_model_mat = state.raycast_target.mesh_node->get_model_matrix();
-	glm_model_mat[3][0] = target_glm.x + cos_time * 0.5;
-	glm_model_mat[3][1] = target_glm.y + cos_time * 0.5;
-	glm_model_mat[3][2] = target_glm.z;
+	// glm_model_mat[3][0] = target_glm.x + cos_time * 0.5;
+	// glm_model_mat[3][1] = target_glm.y + cos_time * 0.5;
+	// glm_model_mat[3][2] = target_glm.z;
 	// state.raycast_target.mesh_node->set_model_matrix(glm_model_mat);
 	const auto model_mat = Terathon::Transform3D(
 		glm_model_mat[0][0], glm_model_mat[1][0], glm_model_mat[2][0], glm_model_mat[3][0],
@@ -232,9 +229,9 @@ void process(GLFWwindow* window, ProgramState& state) {
 	model_motor.SetTransformMatrix(model_mat);
 
 	auto glm_model_mat_2 = state.raycast_target_2.mesh_node->get_model_matrix();
-	glm_model_mat_2[3][0] = target_glm.x + cos_time * 0.5;
-	glm_model_mat_2[3][1] = target_glm.y + cos_time * 0.5;
-	glm_model_mat_2[3][2] = target_glm.z;
+	// glm_model_mat_2[3][0] = target_glm.x + cos_time * 0.5;
+	// glm_model_mat_2[3][1] = target_glm.y + cos_time * 0.5;
+	// glm_model_mat_2[3][2] = target_glm.z;
 	// state.raycast_target_2.mesh_node->set_model_matrix(glm_model_mat_2);
 	const auto model_mat_2 = Terathon::Transform3D(
 		glm_model_mat_2[0][0], glm_model_mat_2[1][0], glm_model_mat_2[2][0], glm_model_mat_2[3][0],
@@ -287,13 +284,14 @@ void process(GLFWwindow* window, ProgramState& state) {
 		// suzanne_high_res.glb: : ~ 274 ms (+184 ms)
 
 		// new test suzanne_high_res.glb, no transform, no camera movement, release build: 1787933ns, 1766558ns
+		// windows: 2095463ns
 		const auto target_pos_glm = cam_model_matrix * glm::vec4(0,0,-1,1);
 		const auto direction_glm = target_pos_glm - cam_pos_glm;
 		const auto direction = Terathon::Vector3D(direction_glm.x, direction_glm.y, direction_glm.z);
 
-		start_time_point = std::chrono::high_resolution_clock::now();
+		const auto ga_start_time_point = std::chrono::high_resolution_clock::now();
 		const bool ga_raycast_hit = tics::pga_raycast(*state.raycast_target.collider, cam_pos, direction);
-		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - start_time_point;
+		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - ga_start_time_point;
 		raycast_times.push_back(ray_cast_time);
 		std::cout << "ga_raycast_hit: " << ga_raycast_hit << "\n";
 	} else {
@@ -306,13 +304,14 @@ void process(GLFWwindow* window, ProgramState& state) {
 		// suzanne_high_res.glb: : ~ 140 ms (+87 ms)
 
 		// new test suzanne_high_res.glb, no transform, no camera movement, release build: 1669995ns, 1666801ns
+		// windows: 1781122ns
 		const auto target_pos_glm = cam_model_matrix * glm::vec4(0,0,-1,1);
 		const auto direction_glm = target_pos_glm - cam_pos_glm;
 		const auto direction = Terathon::Vector3D(direction_glm.x, direction_glm.y, direction_glm.z);
 
-		start_time_point = std::chrono::high_resolution_clock::now();
+		const auto la_start_time_point = std::chrono::high_resolution_clock::now();
 		const bool la_raycast_hit = tics::raycast(*state.raycast_target.collider, cam_pos, direction);
-		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - start_time_point;
+		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - la_start_time_point;
 		raycast_times.push_back(ray_cast_time);
 		std::cout << "la_raycast_hit: " << la_raycast_hit << "\n";
 	}
