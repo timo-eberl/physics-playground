@@ -30,7 +30,7 @@ bool tics::pga_raycast(const MeshCollider &mesh_collider, const Terathon::Point3
 		auto l = pre_l;
 		// Translate the line by subtracting (l.v cross a) from its moment l.m
 		// NOTE: The PGA Illuminated book uses a cross l.v but that gives incorrect results
-		l.m -= !Terathon::Cross(l.v, a);
+		l.m -= Terathon::Wedge(l.v, a);
 
 		// Translate vertices so a is the origin
 		b -= a;

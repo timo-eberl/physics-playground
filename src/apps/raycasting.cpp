@@ -284,6 +284,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 		// suzanne_high_res.glb: : ~ 274 ms (+184 ms)
 
 		// new test suzanne_high_res.glb, no transform, no camera movement, release build: 1787933ns, 1766558ns
+		// without rendering: 1239489ns
 		// windows: 2095463ns
 		const auto target_pos_glm = cam_model_matrix * glm::vec4(0,0,-1,1);
 		const auto direction_glm = target_pos_glm - cam_pos_glm;
@@ -304,6 +305,7 @@ void process(GLFWwindow* window, ProgramState& state) {
 		// suzanne_high_res.glb: : ~ 140 ms (+87 ms)
 
 		// new test suzanne_high_res.glb, no transform, no camera movement, release build: 1669995ns, 1666801ns
+		// without rendering: 1033106ns
 		// windows: 1781122ns
 		const auto target_pos_glm = cam_model_matrix * glm::vec4(0,0,-1,1);
 		const auto direction_glm = target_pos_glm - cam_pos_glm;
