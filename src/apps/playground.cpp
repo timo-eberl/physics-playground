@@ -36,8 +36,6 @@ struct RaycastTarget {
 };
 
 struct ProgramState {
-	std::chrono::_V2::system_clock::time_point start_time_point;
-
 	std::shared_ptr<std::vector<Sphere>> spheres;
 	std::shared_ptr<std::vector<StaticObject>> static_geometry;
 	AreaTrigger area_trigger;
@@ -238,14 +236,22 @@ ProgramState initialize(GLFWwindow* window) {
 	// 100xIcosphereHighres10sLA: 	la d: 11205ns, cd: 4415956ns, cr: 42248ns
 	// 21xIcosphereHighres20sGA: 	ga d: 2770ns, cd: 404380ns, cr: 11554ns
 	// 								ga d: 2797ns, cd: 418571ns, cr: 11653ns
+	//					windows		ga d: 2557ns, cd: 336512ns, cr: 9572ns
 	// 21xIcosphereHighres20sLA: 	la d: 3320ns, cd: 414524ns, cr: 9496ns
 	// 								la d: 3233ns, cd: 408939ns, cr: 9569ns
+	//					windows		la d: 2228ns, cd: 336911ns, cr: 7229ns
+	//					windows		la d: 2288ns, cd: 341886ns, cr: 7338ns
 	// 21xIcosphereHighres20sNoCrGA: 	ga d: 2939ns, cd: 368144ns, cr: 30ns
 	// 							debug	ga d: 33487ns, cd: 4234190ns, cr: 25ns
 	// 21xIcosphereHighres20sNoCrLA: 	la d: 3455ns, cd: 361200ns, cr: 30ns
 	// 							debug	la d: 27099ns, cd: 3980621ns, cr: 24ns
 	// 21xIcosphereHighres20sNoCr2GA: 	ga d: 2743ns, cd: 459380ns, cr: 27ns
+	// 						windows		ga d: 2929ns, cd: 531053ns, cr: 24ns
+	// 						windows		ga d: 2769ns, cd: 496519ns, cr: 23ns
 	// 21xIcosphereHighres20sNoCr2LA: 	la d: 3335ns, cd: 495508ns, cr: 29ns
+	// 						windows		la d: 2375ns, cd: 465945ns, cr: 22ns
+	// 						windows		la d: 2421ns, cd: 525230ns, cr: 23ns
+	//						windows 	la d: 2498ns, cd: 479107ns, cr: 23ns
 
 	// create some spheres
 	for (size_t i = 0; i < 21; i++) {
@@ -344,7 +350,6 @@ ProgramState initialize(GLFWwindow* window) {
 	glfwSetScrollCallback(window, scroll_callback);
 
 	return ProgramState {
-		std::chrono::high_resolution_clock::now(),
 		spheres,
 		static_geometry,
 		area_trigger,

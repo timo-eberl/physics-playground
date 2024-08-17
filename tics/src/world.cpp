@@ -144,7 +144,7 @@ void World::update(const float delta) {
 	collision_detection_times.push_back(cd_time);
 
 	const auto cr_start = std::chrono::high_resolution_clock::now();
-	// collision_response(delta, collisions);
+	collision_response(delta, collisions);
 	const auto cr_time = std::chrono::high_resolution_clock::now() - cr_start;
 	collision_response_times.push_back(cr_time);
 
