@@ -3,7 +3,7 @@ project(physics-playground)
 set (CMAKE_CXX_STANDARD 20) # Require C++20
 
 # this triggers the use of the geometric algebra version
-# add_compile_definitions(TICS_GA)
+add_compile_definitions(TICS_GA)
 
 # Generate compile_commands.json to make C++ syntax checkers happy
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

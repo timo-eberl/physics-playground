@@ -216,6 +216,7 @@ ProgramState initialize(GLFWwindow* window) {
 		0.8,
 		0.95
 	};
+	// windows compiler version \MSVC\14.37.32822
 
 	// 10x simplex 10s -- ga d: 2032ns, cd: 90884ns, cr: 5033ns
 	// 10x simplex 10s -- la d: 1966ns, cd: 81693ns, cr: 4067ns
@@ -254,6 +255,10 @@ ProgramState initialize(GLFWwindow* window) {
 	// 						windows		la d: 2375ns, cd: 465945ns, cr: 22ns
 	// 						windows		la d: 2421ns, cd: 525230ns, cr: 23ns
 	//						windows 	la d: 2498ns, cd: 479107ns, cr: 23ns
+	// Dyn300x20sLA					:
+	// 						windows		la d: 47859ns, cd: 22ns, cr: 23ns
+	// Dyn300x20sGA					:
+	// 						windows		ga d: 48709ns, cd: 23ns, cr: 22ns
 
 	// create some spheres
 	for (size_t i = 0; i < 300; i++) {
