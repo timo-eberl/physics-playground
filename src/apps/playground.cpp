@@ -159,7 +159,7 @@ ProgramState initialize(GLFWwindow* window) {
 	camera_controls.set_target(glm::vec3(0.0f, 0.0f, 0.0f));
 
 	tics::World physics_world;
-	physics_world.set_gravity(Terathon::Vector3D(0.0, -9.81, 0.0));
+	physics_world.set_gravity(Terathon::Vector3D(0.0, -0.01, 0.0));
 
 	auto spheres = std::make_shared<std::vector<Sphere>>();
 
@@ -256,7 +256,7 @@ ProgramState initialize(GLFWwindow* window) {
 	//						windows 	la d: 2498ns, cd: 479107ns, cr: 23ns
 
 	// create some spheres
-	for (size_t i = 0; i < 21; i++) {
+	for (size_t i = 0; i < 300; i++) {
 		auto sphere = create_sphere(
 			positions[i % 10] + Terathon::Vector3D(0,i/10,0)*2.0f,
 			Terathon::Vector3D(0,0,0), // velocity
@@ -375,6 +375,23 @@ void process(GLFWwindow* window, ProgramState& state) {
 	}
 
 	auto start_time_point = std::chrono::high_resolution_clock::now();
+
+	// add random impulses for dynamics benchmark
+	for (auto &sphere : *state.spheres) {
+		sphere.rigid_body->an_imp_div_sq_dst = Terathon::Quaternion::MakeRotation(
+			(static_cast<float>(std::rand()) / RAND_MAX - 0.5f) * 0.1f,
+			Terathon::Normalize(Terathon::Bivector3D(
+				static_cast<float>(std::rand()) / RAND_MAX,
+				static_cast<float>(std::rand()) / RAND_MAX,
+				static_cast<float>(std::rand()) / RAND_MAX
+			))
+		);
+		sphere.rigid_body->impulse = Terathon::Vector3D(
+			(static_cast<float>(std::rand()) / RAND_MAX) * 2.0f - 1.0f,
+			(static_cast<float>(std::rand()) / RAND_MAX) * 2.0f - 1.0f,
+			(static_cast<float>(std::rand()) / RAND_MAX) * 2.0f - 1.0f
+		) * 0.3f;
+	}
 
 	// create spheres with random size and color
 	// if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT == GLFW_PRESS)) {
