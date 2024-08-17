@@ -159,13 +159,22 @@ ProgramState initialize(GLFWwindow* window) {
 	// raycasting setup - first target
 	RaycastTarget raycast_target = {
 		std::make_shared<tics::MeshCollider>(),
-		ron::gltf::import("models/suzanne_high_res.glb").get_mesh_nodes().front()
+		ron::gltf::import("models/suzanne.glb").get_mesh_nodes().front()
 	};
 	const auto raycast_target_geometry = raycast_target.mesh_node->get_mesh()->sections.front().geometry;
 	// copy positions and inidices to MeshCollider
 	raycast_target.collider->indices = raycast_target_geometry->indices;
 	for (const auto &vertex_pos : raycast_target_geometry->positions) {
 		raycast_target.collider->positions.push_back(Terathon::Vector3D(vertex_pos.x, vertex_pos.y, vertex_pos.z));
+	}
+	raycast_target.collider->edges = std::vector<Terathon::Line3D>(raycast_target.collider->indices.size() / 3);
+	for (size_t triangle_index = 0; triangle_index < raycast_target.collider->indices.size() / 3; triangle_index++) {
+		auto a = Terathon::Point3D(raycast_target.collider->positions.at(raycast_target.collider->indices.at(triangle_index * 3 + 0)));
+		auto b = Terathon::Point3D(raycast_target.collider->positions.at(raycast_target.collider->indices.at(triangle_index * 3 + 1)));
+		auto c = Terathon::Point3D(raycast_target.collider->positions.at(raycast_target.collider->indices.at(triangle_index * 3 + 2)));
+		b -= a; c -= a;
+		const auto e_bc = Terathon::Wedge(b, c);
+		raycast_target.collider->edges.at(triangle_index) = e_bc;
 	}
 	scene.add(raycast_target.mesh_node);
 
@@ -273,6 +282,13 @@ void process(GLFWwindow* window, ProgramState& state) {
 		// std::cout << "***** conventional " << raycast_fail << ":" << pga_raycast_fail << " pga *****" << std::endl;
 	}
 
+	// RaycastHitLA: 				avg time: 1042900ns
+	// RaycastHitGA: 				avg time: 1237085ns
+	// RaycastHitGAPreEdge: 		avg time: 1209924ns
+	// RaycastMissLowresLA: 		avg time:   11416ns
+	// RaycastMissLowresGA: 		avg time:   11941ns
+	// RaycastMissLowresGAPreEdge: 	avg time:   12118ns
+
 	// performance measuring
 	if (pga) {
 		// without transform:
@@ -291,7 +307,9 @@ void process(GLFWwindow* window, ProgramState& state) {
 		const auto direction = Terathon::Vector3D(direction_glm.x, direction_glm.y, direction_glm.z);
 
 		const auto ga_start_time_point = std::chrono::high_resolution_clock::now();
-		const bool ga_raycast_hit = tics::pga_raycast(*state.raycast_target.collider, cam_pos, direction);
+		const bool ga_raycast_hit = tics::pga_raycast(
+			*state.raycast_target.collider, cam_pos + Terathon::Vector3D(0,0,0), direction
+		);
 		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - ga_start_time_point;
 		raycast_times.push_back(ray_cast_time);
 		std::cout << "ga_raycast_hit: " << ga_raycast_hit << "\n";
@@ -312,7 +330,9 @@ void process(GLFWwindow* window, ProgramState& state) {
 		const auto direction = Terathon::Vector3D(direction_glm.x, direction_glm.y, direction_glm.z);
 
 		const auto la_start_time_point = std::chrono::high_resolution_clock::now();
-		const bool la_raycast_hit = tics::raycast(*state.raycast_target.collider, cam_pos, direction);
+		const bool la_raycast_hit = tics::raycast(
+			*state.raycast_target.collider, cam_pos + Terathon::Vector3D(0,0,0), direction
+		);
 		const auto ray_cast_time = std::chrono::high_resolution_clock::now() - la_start_time_point;
 		raycast_times.push_back(ray_cast_time);
 		std::cout << "la_raycast_hit: " << la_raycast_hit << "\n";

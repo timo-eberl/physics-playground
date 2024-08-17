@@ -236,9 +236,11 @@ ProgramState initialize(GLFWwindow* window) {
 	// 100xIcosphereHighres10sLA: 	la d: 11205ns, cd: 4415956ns, cr: 42248ns
 	// 21xIcosphereHighres20sGA: 	ga d: 2770ns, cd: 404380ns, cr: 11554ns
 	// 								ga d: 2797ns, cd: 418571ns, cr: 11653ns
+	// 								ga d: 2819ns, cd: 422945ns, cr: 11691ns
 	//					windows		ga d: 2557ns, cd: 336512ns, cr: 9572ns
 	// 21xIcosphereHighres20sLA: 	la d: 3320ns, cd: 414524ns, cr: 9496ns
 	// 								la d: 3233ns, cd: 408939ns, cr: 9569ns
+	// 								la d: 3231ns, cd: 407854ns, cr: 9293ns
 	//					windows		la d: 2228ns, cd: 336911ns, cr: 7229ns
 	//					windows		la d: 2288ns, cd: 341886ns, cr: 7338ns
 	// 21xIcosphereHighres20sNoCrGA: 	ga d: 2939ns, cd: 368144ns, cr: 30ns

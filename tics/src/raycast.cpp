@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <cassert>
 
 #include <TSRigid3D.h>
 #include <TSVector4D.h>
@@ -26,6 +27,8 @@ bool tics::pga_raycast(const MeshCollider &mesh_collider, const Terathon::Point3
 		auto a = Terathon::Point3D(mesh_collider.positions.at(mesh_collider.indices.at(triangle_index * 3 + 0)));
 		auto b = Terathon::Point3D(mesh_collider.positions.at(mesh_collider.indices.at(triangle_index * 3 + 1)));
 		auto c = Terathon::Point3D(mesh_collider.positions.at(mesh_collider.indices.at(triangle_index * 3 + 2)));
+		// precalculated edge
+		const auto e_bc = mesh_collider.edges.at(triangle_index);
 
 		auto l = pre_l;
 		// Translate the line by subtracting (l.v cross a) from its moment l.m
@@ -35,17 +38,18 @@ bool tics::pga_raycast(const MeshCollider &mesh_collider, const Terathon::Point3
 		// Translate vertices so a is the origin
 		b -= a;
 		c -= a;
-		a = Terathon::Point3D::zero;
+		// a = Terathon::Point3D::zero;
 
 		// Lines representing the edges of the triangle
-		const auto k_1 = Terathon::Line3D(b, Terathon::Bivector3D::zero);
-		const auto k_2 = Terathon::Wedge(b, c);
-		const auto k_3 = Terathon::Line3D(-c, Terathon::Bivector3D::zero);
+		const auto e_ab = Terathon::Line3D(b, Terathon::Bivector3D::zero);
+		// const auto e_bc = Terathon::Wedge(b, c);
+		const auto e_ca = Terathon::Line3D(-c, Terathon::Bivector3D::zero);
+
 		// If any of the Antiwedge products is negative, then the line does not intersect the triangle.
 		const auto any_negative = (
-			Terathon::Antiwedge(l, k_1) < 0 ||
-			Terathon::Antiwedge(l, k_2) < 0 ||
-			Terathon::Antiwedge(l, k_3) < 0
+			Terathon::Antiwedge(l, e_ab) < 0 ||
+			Terathon::Antiwedge(l, e_bc) < 0 ||
+			Terathon::Antiwedge(l, e_ca) < 0
 		);
 		if (!any_negative) {
 			return true;
