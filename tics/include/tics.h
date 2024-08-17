@@ -58,15 +58,9 @@ struct MeshCollider : Collider {
 	std::vector<uint32_t> indices = {};
 };
 
-bool pga_raycast(
-	const Terathon::Motor3D &model_motor, const MeshCollider &mesh_collider,
-	const Terathon::Point3D p, const Terathon::Point3D q
-);
+bool pga_raycast(const MeshCollider &mesh_collider, const Terathon::Point3D ray_start, const Terathon::Vector3D direction);
 
-bool raycast(
-	const Terathon::Transform3D &model_mat, const MeshCollider &mesh_collider,
-	const Terathon::Vector3D ray_start, const Terathon::Vector3D direction
-);
+bool raycast(const MeshCollider &mesh_collider, const Terathon::Vector3D ray_start, const Terathon::Vector3D direction);
 
 struct CollisionPoints {
 	// a and b are the points where each shape penetrates the other most

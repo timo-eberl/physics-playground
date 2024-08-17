@@ -17,121 +17,110 @@ static std::string vec_to_str(Terathon::Vector3D v) {
 	return stream.str();
 }
 
-bool tics::pga_raycast(const Terathon::Motor3D &model_motor, const MeshCollider &mesh_collider, const Terathon::Point3D p, const Terathon::Point3D q) {
+bool tics::pga_raycast(const MeshCollider &mesh_collider, const Terathon::Point3D p, const Terathon::Vector3D v) {
+	// the line l can be calculated once and used for all triangles
+	const auto pre_l = Terathon::Wedge(p, p + v);
+
 	for (size_t triangle_index = 0; triangle_index < mesh_collider.indices.size() / 3; triangle_index++) {
-		const uint32_t indices [3] = {
-			mesh_collider.indices.at(triangle_index * 3 + 0),
-			mesh_collider.indices.at(triangle_index * 3 + 1),
-			mesh_collider.indices.at(triangle_index * 3 + 2),
-		};
-		const Terathon::Vector3D vertices [3] = {
-			mesh_collider.positions.at(indices[0]),
-			mesh_collider.positions.at(indices[1]),
-			mesh_collider.positions.at(indices[2]),
-		};
+		// vertex positions of current triangle
+		auto a = Terathon::Point3D(mesh_collider.positions.at(mesh_collider.indices.at(triangle_index * 3 + 0)));
+		auto b = Terathon::Point3D(mesh_collider.positions.at(mesh_collider.indices.at(triangle_index * 3 + 1)));
+		auto c = Terathon::Point3D(mesh_collider.positions.at(mesh_collider.indices.at(triangle_index * 3 + 2)));
 
-		auto a = Terathon::Transform( Terathon::Point3D(vertices[0]), model_motor );
-		auto b = Terathon::Transform( Terathon::Point3D(vertices[1]), model_motor );
-		auto c = Terathon::Transform( Terathon::Point3D(vertices[2]), model_motor );
-
-		std::cout << "pga a: " << vec_to_str(a) << std::endl;
-		std::cout << "pga b: " << vec_to_str(b) << std::endl;
-		std::cout << "pga c: " << vec_to_str(c) << std::endl;
-
-		auto l = Terathon::Wedge(p, q);
-
+		auto l = pre_l;
 		// Translate the line by subtracting (l.v cross a) from its moment l.m
 		// NOTE: The PGA Illuminated book uses a cross l.v but that gives incorrect results
-		const auto a_cross_lv = Terathon::Cross(a, l.v);
-		const auto lv_cross_a = Terathon::Cross(l.v, a);
-		l.m -= Terathon::Bivector3D(lv_cross_a.x, lv_cross_a.y, lv_cross_a.z);
+		l.m -= !Terathon::Cross(l.v, a);
 
-		// Translate a to the origin and subtract a from b and c
+		// Translate vertices so a is the origin
 		b -= a;
 		c -= a;
-		a = Terathon::Point3D(0.0f, 0.0f, 0.0f);
-
-		std::cout << "pga a_translated: " << vec_to_str(a) << std::endl;
-		std::cout << "pga b_translated: " << vec_to_str(b) << std::endl;
-		std::cout << "pga c_translated: " << vec_to_str(c) << std::endl;
+		a = Terathon::Point3D::zero;
 
 		// Lines representing the edges of the triangle
-		const auto k_1 = Terathon::Line3D(b, Terathon::Bivector3D(0.0f, 0.0f, 0.0f));
+		const auto k_1 = Terathon::Line3D(b, Terathon::Bivector3D::zero);
 		const auto k_2 = Terathon::Wedge(b, c);
-		const auto k_3 = Terathon::Line3D(-c, Terathon::Bivector3D(0.0f, 0.0f, 0.0f));
-
-		std::cout << "Antiwedge(l, k_1): " << Antiwedge(l, k_1) << std::endl;
-		std::cout << "Antiwedge(l, k_2): " << Antiwedge(l, k_2) << std::endl;
-		std::cout << "Antiwedge(l, k_3): " << Antiwedge(l, k_3) << std::endl;
+		const auto k_3 = Terathon::Line3D(-c, Terathon::Bivector3D::zero);
 		// If any of the Antiwedge products is negative, then the line does not intersect the triangle.
-
-		return !(
+		const auto any_negative = (
 			Terathon::Antiwedge(l, k_1) < 0 ||
 			Terathon::Antiwedge(l, k_2) < 0 ||
 			Terathon::Antiwedge(l, k_3) < 0
 		);
+		if (!any_negative) {
+			return true;
+		}
 	}
 
 	return false;
 }
 
-bool tics::raycast(const Terathon::Transform3D &model_mat, const MeshCollider &mesh_collider, const Terathon::Vector3D ray_start, const Terathon::Vector3D direction) {
+bool tics::raycast(const MeshCollider &mesh_collider, const Terathon::Vector3D p, const Terathon::Vector3D v) {
 	for (size_t triangle_index = 0; triangle_index < mesh_collider.indices.size() / 3; triangle_index++) {
-		const uint32_t indices [3] = {
-			mesh_collider.indices.at(triangle_index * 3 + 0),
-			mesh_collider.indices.at(triangle_index * 3 + 1),
-			mesh_collider.indices.at(triangle_index * 3 + 2),
-		};
-		Terathon::Vector3D vertices [3] = {
-			mesh_collider.positions.at(indices[0]),
-			mesh_collider.positions.at(indices[1]),
-			mesh_collider.positions.at(indices[2]),
-		};
+		auto a = Terathon::Point3D(mesh_collider.positions.at(mesh_collider.indices.at(triangle_index * 3 + 0)));
+		auto b = Terathon::Point3D(mesh_collider.positions.at(mesh_collider.indices.at(triangle_index * 3 + 1)));
+		auto c = Terathon::Point3D(mesh_collider.positions.at(mesh_collider.indices.at(triangle_index * 3 + 2)));
 
-		auto a = model_mat * Terathon::Point3D(vertices[0]);
-		auto b = model_mat * Terathon::Point3D(vertices[1]);
-		auto c = model_mat * Terathon::Point3D(vertices[2]);
+		// Let l be a line containing the point p and running parallel to the unit vector v
 
-		// Let l be a line containing the point ray_start and running parallel to the direction vector direction
+		// Translate the vertices so that p coincides with the origin
+		a -= p;
+		b -= p;
+		c -= p;
 
-		Terathon::Vector4D plane;
-		plane.xyz = Terathon::Cross( (b-a), (c-a) );
-		plane.w = Terathon::Dot( -plane.xyz, a - ray_start );
-
-		// find the point of intersection q
-		Terathon::Vector3D q =
-			ray_start +
-			( -plane.w / Terathon::Dot(plane.xyz, direction) ) * direction;
-
-		a -= q;
-		b -= q;
-		c -= q;
-		q = Terathon::Vector3D(0.0f, 0.0f, 0.0f);
-
-		// edge 0
-		const Terathon::Vector3D edge0 = b - a;
-		const Terathon::Vector3D aq = q - a;
-		const auto scalar_triple_product_edge0_aq = Terathon::Dot( plane.xyz * plane.w, Terathon::Cross(edge0, aq) );
-
-		// edge 1
-		const Terathon::Vector3D edge1 = c - b;
-		const Terathon::Vector3D bq = q - b;
-		const auto scalar_triple_product_edge1_bq = Terathon::Dot( plane.xyz * plane.w, Terathon::Cross(edge1, bq) );
-
-		// edge 2
-		const Terathon::Vector3D edge2 = a - c;
-		const Terathon::Vector3D cq = q - c;
-		const auto scalar_triple_product_edge2_cq = Terathon::Dot( plane.xyz * plane.w, Terathon::Cross(edge2, cq) );
-
-		std::cout << "scalar_triple_product_edge0_aq: " << scalar_triple_product_edge0_aq << std::endl;
-		std::cout << "scalar_triple_product_edge1_bq: " << scalar_triple_product_edge1_bq << std::endl;
-		std::cout << "scalar_triple_product_edge2_cq: " << scalar_triple_product_edge2_cq << std::endl;
-
-		return !(
-			scalar_triple_product_edge0_aq < 0 ||
-			scalar_triple_product_edge1_bq < 0 ||
-			scalar_triple_product_edge2_cq < 0
+		// Calculate the scalar triple products (a x b) dot v, (b x c) dot v, (c x a) dot v
+		const auto scalar_triple_product_ab = Terathon::Dot( Terathon::Cross(a, b), v );
+		const auto scalar_triple_product_bc = Terathon::Dot( Terathon::Cross(b, c), v );
+		const auto scalar_triple_product_ca = Terathon::Dot( Terathon::Cross(c, a), v );
+		// If any of these products is positive, then the line does not intersect the triangle.
+		const auto any_positive = (
+			scalar_triple_product_ab > 0 ||
+			scalar_triple_product_bc > 0 ||
+			scalar_triple_product_ca > 0
 		);
+		if (!any_positive) {
+			return true;
+		}
+
+		// // implicit plane of the current triangle
+		// Terathon::Vector4D plane;
+		// plane.xyz = Terathon::Cross( (b-a), (c-a) );
+		// plane.w = Terathon::Dot( -plane.xyz, a - p );
+
+		// // find the point of intersection q
+		// Terathon::Vector3D q =
+		// 	p +
+		// 	( -plane.w / Terathon::Dot(plane.xyz, v) ) * v;
+
+		// a -= q;
+		// b -= q;
+		// c -= q;
+		// q = Terathon::Vector3D(0.0f, 0.0f, 0.0f);
+
+		// // edge 0
+		// const Terathon::Vector3D edge0 = b - a;
+		// const Terathon::Vector3D aq = q - a;
+		// const auto scalar_triple_product_edge0_aq = Terathon::Dot( plane.xyz * plane.w, Terathon::Cross(edge0, aq) );
+
+		// // edge 1
+		// const Terathon::Vector3D edge1 = c - b;
+		// const Terathon::Vector3D bq = q - b;
+		// const auto scalar_triple_product_edge1_bq = Terathon::Dot( plane.xyz * plane.w, Terathon::Cross(edge1, bq) );
+
+		// // edge 2
+		// const Terathon::Vector3D edge2 = a - c;
+		// const Terathon::Vector3D cq = q - c;
+		// const auto scalar_triple_product_edge2_cq = Terathon::Dot( plane.xyz * plane.w, Terathon::Cross(edge2, cq) );
+
+		// std::cout << "scalar_triple_product_edge0_aq: " << scalar_triple_product_edge0_aq << std::endl;
+		// std::cout << "scalar_triple_product_edge1_bq: " << scalar_triple_product_edge1_bq << std::endl;
+		// std::cout << "scalar_triple_product_edge2_cq: " << scalar_triple_product_edge2_cq << std::endl;
+
+		// return !(
+		// 	scalar_triple_product_edge0_aq < 0 ||
+		// 	scalar_triple_product_edge1_bq < 0 ||
+		// 	scalar_triple_product_edge2_cq < 0
+		// );
 	}
 
 	return false;
