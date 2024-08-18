@@ -282,19 +282,6 @@ void process(GLFWwindow* window, ProgramState& state) {
 		// std::cout << "***** conventional " << raycast_fail << ":" << pga_raycast_fail << " pga *****" << std::endl;
 	}
 
-	// RaycastHitLA: 				avg time: 1042900ns
-	// 					windows 	avg time: 1175602ns
-	// RaycastHitGA: 				avg time: 1237085ns
-	// 					windows 	avg time: 1381974ns
-	// RaycastHitGAPreEdge: 		avg time: 1209924ns
-	// 					windows 	avg time: 1273892ns
-	// RaycastMissLowresLA: 		avg time:   11416ns
-	// 					windows 	avg time:   14805ns
-	// RaycastMissLowresGA: 		avg time:   11941ns
-	// 					windows 	avg time:   15924ns
-	// RaycastMissLowresGAPreEdge: 	avg time:   12118ns
-	// 					windows 	avg time:   14374ns
-
 	// performance measuring
 	if (pga) {
 		// without transform:

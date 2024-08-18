@@ -235,15 +235,6 @@ ProgramState initialize(GLFWwindow* window) {
 	// 100xIcosphereHighres10sGA: 	ga d: 9473ns, cd: 4459003ns, cr: 52146ns
 	// 								ga d: 9371ns, cd: 4302813ns, cr: 50911ns
 	// 100xIcosphereHighres10sLA: 	la d: 11205ns, cd: 4415956ns, cr: 42248ns
-	// 21xIcosphereHighres20sGA: 	ga d: 2770ns, cd: 404380ns, cr: 11554ns
-	// 								ga d: 2797ns, cd: 418571ns, cr: 11653ns
-	// 								ga d: 2819ns, cd: 422945ns, cr: 11691ns
-	//					windows		ga d: 2557ns, cd: 336512ns, cr: 9572ns
-	// 21xIcosphereHighres20sLA: 	la d: 3320ns, cd: 414524ns, cr: 9496ns
-	// 								la d: 3233ns, cd: 408939ns, cr: 9569ns
-	// 								la d: 3231ns, cd: 407854ns, cr: 9293ns
-	//					windows		la d: 2228ns, cd: 336911ns, cr: 7229ns
-	//					windows		la d: 2288ns, cd: 341886ns, cr: 7338ns
 	// 21xIcosphereHighres20sNoCrGA: 	ga d: 2939ns, cd: 368144ns, cr: 30ns
 	// 							debug	ga d: 33487ns, cd: 4234190ns, cr: 25ns
 	// 21xIcosphereHighres20sNoCrLA: 	la d: 3455ns, cd: 361200ns, cr: 30ns
@@ -255,10 +246,38 @@ ProgramState initialize(GLFWwindow* window) {
 	// 						windows		la d: 2375ns, cd: 465945ns, cr: 22ns
 	// 						windows		la d: 2421ns, cd: 525230ns, cr: 23ns
 	//						windows 	la d: 2498ns, cd: 479107ns, cr: 23ns
-	// Dyn300x20sLA					:
+	// RaycastMissLowresLA: 		avg time:   11416ns
+	// 					windows 	avg time:   14805ns
+	// RaycastMissLowresGA: 		avg time:   11941ns
+	// 					windows 	avg time:   15924ns
+	// RaycastMissLowresGAPreEdge: 	avg time:   12118ns
+	// 					windows 	avg time:   14374ns
+
+	// --- RELEVANT TESTS BELOW ---
+
+	// RaycastHitLA: 				avg time: 1042900ns
+	// 					windows 	avg time: 1175602ns
+	// RaycastHitGA: 				avg time: 1237085ns
+	// 					windows 	avg time: 1381974ns
+	// RaycastHitGAPreEdge: 		avg time: 1209924ns
+	// 					windows 	avg time: 1273892ns
+
+	// Dyn300x20sLA					:	la d: 35896ns, cd: 29ns, cr: 26ns
+	// 									la d: 35969ns, cd: 29ns, cr: 25ns
 	// 						windows		la d: 47859ns, cd: 22ns, cr: 23ns
-	// Dyn300x20sGA					:
+	// Dyn300x20sGA					:	ga d: 40653ns, cd: 31ns, cr: 26ns
+	// 									ga d: 42067ns, cd: 30ns, cr: 25ns
 	// 						windows		ga d: 48709ns, cd: 23ns, cr: 22ns
+
+	// 21xIcosphereHighres20sGA: 	ga d: 2770ns, cd: 404380ns, cr: 11554ns
+	// 								ga d: 2797ns, cd: 418571ns, cr: 11653ns
+	// 								ga d: 2819ns, cd: 422945ns, cr: 11691ns
+	//					windows		ga d: 2557ns, cd: 336512ns, cr: 9572ns
+	// 21xIcosphereHighres20sLA: 	la d: 3320ns, cd: 414524ns, cr: 9496ns
+	// 								la d: 3233ns, cd: 408939ns, cr: 9569ns
+	// 								la d: 3231ns, cd: 407854ns, cr: 9293ns
+	//					windows		la d: 2228ns, cd: 336911ns, cr: 7229ns
+	//					windows		la d: 2288ns, cd: 341886ns, cr: 7338ns
 
 	// create some spheres
 	for (size_t i = 0; i < 300; i++) {
